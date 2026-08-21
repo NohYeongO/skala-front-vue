@@ -19,17 +19,17 @@
   margin-bottom: 24px;
 }
 
-.weather-mockup {
+.dashboard-wrapper {
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
 }
-.weather-mockup h2 {
+.dashboard-wrapper h2 {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 16px;
 }
-.weather-mockup h3 {
+.dashboard-wrapper h3 {
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 10px;
@@ -82,6 +82,28 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
+}
+.favorite-filter {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.favorite-filter input {
+  width: auto;
+  margin-right: 4px;
+}
+.btn-favorite {
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  color: #ced4da;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.btn-favorite.active {
+  color: #f1c40f;
 }
 .card-head h4 {
   font-size: 1.05rem;
@@ -144,4 +166,9 @@
   text-align: center;
   padding: 10px;
   border-radius: 6px;
+}
+.no-result {
+  text-align: center;
+  color: #e74c3c;
+  padding: 10px 0;
 }
