@@ -591,3 +591,114 @@ WeatherDetailView에도 같은 스토어로 ★ 버튼을 두어 상세 페이�
   ★
 </button>
 ```
+
+## 과제 6. Weather Axios
+
+### 요구사항
+
+Axios 라이브러리를 설치하고 OpenWeatherMap API 키를 발급받는다.
+
+1. OpenWeatherMap API를 통해 실제 날씨 데이터를 가져와 적용한다.
+2. OpenWeatherMap에서 제공되는 API를 추가하여 Application 기능을 확장한다.
+3. 기타 외부 API를 추가하여 Application 기능을 확장한다.
+
+### 구현 내용
+
+수정 파일: `WeatherHomeView.vue` `WeatherDetailView.vue` `WeatherSpotsView.vue`
+
+API 키는 루트의 `.env` 파일에 `VITE_` 접두사 환경 변수로 두고 각 View에서 `import.meta.env`로 읽습니다. `.env`는 `.gitignore`에 넣어 저장소에 올리지 않고 `.env.example`에 변수 이름만 남겼습니다. 실행하려면 `.env.example`을 `.env`로 복사해 OpenWeatherMap 키와 공공데이터포털(한국관광공사) 키를 채우면 됩니다.
+
+```
+VITE_OPENWEATHER_API_KEY=발급받은_키
+VITE_TOUR_API_KEY=발급받은_키
+```
+
+```js
+const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY
+const BASE_URL = 'https://api.openweathermap.org/data/2.5'
+```
+
+**1. OpenWeatherMap 실제 날씨 적용**
+
+메인 대시보드는 mock 배열 대신 도시 목록(`id` 한글명 영문명)만 두고 `onMounted`에서 `axios.all`로 5개 도시의 Current Weather API를 동시에 호출해 기존 카드가 쓰던 필드(`temp` `status` `feelsLike` `humidity` `windSpeed`)로 매핑했습니다. 호출 중에는 `isLoading`으로 로딩 문구를 실패하면 `errorMessage`를 보여줍니다.
+
+```js
+const fetchWeatherList = async () => {
+  isLoading.value = true
+  errorMessage.value = ''
+  try {
+    const requests = cityList.map((city) =>
+      axios.get(`${BASE_URL}/weather?q=${city.english}&appid=${API_KEY}&units=metric&lang=kr`),
+    )
+    const responses = await axios.all(requests)
+    weatherList.value = responses.map((response, index) => ({
+      id: cityList[index].id,
+      name: cityList[index].name,
+      temp: Math.round(response.data.main.temp),
+      status: response.data.weather[0].description,
+      feelsLike: Math.round(response.data.main.feels_like),
+      humidity: response.data.main.humidity,
+      windSpeed: response.data.wind.speed,
+    }))
+  } catch (error) {
+    console.error('날씨 API 호출 실패:', error)
+    errorMessage.value = '날씨 데이터를 가져오지 못했습니다. API Key와 네트워크를 확인하세요.'
+  } finally {
+    isLoading.value = false
+  }
+}
+```
+
+상세 페이지도 `mockDetails`를 지우고 `cityMapping`의 영문명으로 같은 API를 호출해 기온 최저 최고 체감 습도 풍속을 채웁니다.
+
+**2. OpenWeatherMap API 추가 (Air Pollution)**
+
+상세 페이지에서 Current Weather 응답의 `coord`로 Air Pollution API를 한 번 더 호출해 대기질 지수(`aqi` 1~5)와 PM2.5 PM10을 표시합니다. 지수는 `aqiLabels` 배열로 좋음~매우 나쁨 문구를 붙이고 `:class`로 색을 바꿉니다.
+
+```js
+const airResponse = await axios.get(
+  `${BASE_URL}/air_pollution?lat=${raw.coord.lat}&lon=${raw.coord.lon}&appid=${API_KEY}`,
+)
+const air = airResponse.data.list[0]
+airData.value = {
+  aqi: air.main.aqi,
+  pm25: Math.round(air.components.pm2_5),
+  pm10: Math.round(air.components.pm10),
+}
+```
+
+```html
+<p v-if="airData" class="air">
+  🌫️ 대기질: <strong :class="'aqi-' + airData.aqi">{{ aqiLabels[airData.aqi] }}</strong>
+  (PM2.5 {{ airData.pm25 }} / PM10 {{ airData.pm10 }} ㎍/㎥)
+</p>
+```
+
+**3. 기타 외부 API 추가 (한국관광공사 TourAPI)**
+
+관광지 페이지는 mock 대신 도시별로 정해 둔 유명 관광지 이름 5개를 TourAPI 키워드 검색(`searchKeyword2`)으로 `axios.all` 조회해 이름 주소 대표 이미지 위경도를 받고 각 관광지의 위경도(`mapy` `mapx`)로 OpenWeather를 다시 `axios.all` 호출해 관광지별 현재 기온과 날씨를 붙였습니다.
+
+```js
+const cityMapping = {
+  city_01: { name: '서울', spots: ['경복궁', '북촌한옥마을', '청계천', '덕수궁', '남산서울타워'] },
+  ...
+}
+
+const tourRequests = targetCity.spots.map((keyword) =>
+  axios.get(`${TOUR_BASE_URL}/searchKeyword2?serviceKey=${TOUR_API_KEY}&MobileOS=ETC&MobileApp=SkalaWeather&_type=json&keyword=${keyword}&contentTypeId=12&arrange=A&numOfRows=1&pageNo=1`),
+)
+const tourResponses = await axios.all(tourRequests)
+const items = tourResponses.map((response) => response.data.response.body.items.item[0])
+
+const weatherRequests = items.map((item) =>
+  axios.get(`${BASE_URL}/weather?lat=${item.mapy}&lon=${item.mapx}&appid=${API_KEY}&units=metric&lang=kr`),
+)
+const weatherResponses = await axios.all(weatherRequests)
+```
+
+```html
+<img v-if="spot.image" :src="spot.image" :alt="spot.name" class="spot-image" />
+<p class="weather">
+  🌡️ {{ convertTemp(spot.temp) }}{{ configStore.unitSymbol }} · {{ spot.status }}
+</p>
+```

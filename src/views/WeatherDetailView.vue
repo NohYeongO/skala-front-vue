@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import axios from 'axios'
 import { useConfigStore } from '@/stores/configStore'
 import { useFavoriteStore } from '@/stores/favoriteStore'
 import WeatherDetailList from '@/components/exercise/WeatherDetailList.vue'
@@ -10,75 +11,65 @@ const router = useRouter()
 const configStore = useConfigStore()
 const favoriteStore = useFavoriteStore()
 
-const mockDetails = {
-  city_01: {
-    name: '서울',
-    region: '서울특별시 중구',
-    temp: 28,
-    tempMin: 22,
-    tempMax: 31,
-    status: '맑음',
-    feelsLike: 30,
-    humidity: 55,
-    windSpeed: 2.1,
-    observedAt: '2026-08-21 14:00',
-  },
-  city_02: {
-    name: '수원',
-    region: '경기도 수원시 영통구',
-    temp: 24,
-    tempMin: 21,
-    tempMax: 26,
-    status: '비',
-    feelsLike: 25,
-    humidity: 88,
-    windSpeed: 3.4,
-    observedAt: '2026-08-21 14:00',
-  },
-  city_03: {
-    name: '부산',
-    region: '부산광역시 해운대구',
-    temp: 26,
-    tempMin: 24,
-    tempMax: 29,
-    status: '구름',
-    feelsLike: 29,
-    humidity: 74,
-    windSpeed: 5.6,
-    observedAt: '2026-08-21 14:00',
-  },
-  city_04: {
-    name: '광주',
-    region: '광주광역시 북구',
-    temp: 29,
-    tempMin: 23,
-    tempMax: 32,
-    status: '맑음',
-    feelsLike: 33,
-    humidity: 62,
-    windSpeed: 1.8,
-    observedAt: '2026-08-21 14:00',
-  },
-  city_05: {
-    name: '울산',
-    region: '울산광역시 남구',
-    temp: 23,
-    tempMin: 21,
-    tempMax: 25,
-    status: '흐림',
-    feelsLike: 23,
-    humidity: 79,
-    windSpeed: 4.2,
-    observedAt: '2026-08-21 14:00',
-  },
+const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY
+const BASE_URL = 'https://api.openweathermap.org/data/2.5'
+
+const cityMapping = {
+  city_01: { name: '서울', region: '서울특별시', english: 'Seoul' },
+  city_02: { name: '수원', region: '경기도 수원시', english: 'Suwon' },
+  city_03: { name: '부산', region: '부산광역시', english: 'Busan' },
+  city_04: { name: '광주', region: '광주광역시', english: 'Gwangju' },
+  city_05: { name: '울산', region: '울산광역시', english: 'Ulsan' },
 }
 
+const aqiLabels = ['', '좋음', '양호', '보통', '나쁨', '매우 나쁨']
+
 const cityData = ref(null)
+const airData = ref(null)
+const isLoading = ref(false)
+const errorMessage = ref('')
+
+const fetchCityDetail = async (targetCity) => {
+  isLoading.value = true
+  errorMessage.value = ''
+  try {
+    const weatherResponse = await axios.get(
+      `${BASE_URL}/weather?q=${targetCity.english}&appid=${API_KEY}&units=metric&lang=kr`,
+    )
+    const raw = weatherResponse.data
+    cityData.value = {
+      name: targetCity.name,
+      region: targetCity.region,
+      temp: Math.round(raw.main.temp),
+      tempMin: Math.round(raw.main.temp_min),
+      tempMax: Math.round(raw.main.temp_max),
+      status: raw.weather[0].description,
+      feelsLike: Math.round(raw.main.feels_like),
+      humidity: raw.main.humidity,
+      windSpeed: raw.wind.speed,
+    }
+
+    const airResponse = await axios.get(
+      `${BASE_URL}/air_pollution?lat=${raw.coord.lat}&lon=${raw.coord.lon}&appid=${API_KEY}`,
+    )
+    const air = airResponse.data.list[0]
+    airData.value = {
+      aqi: air.main.aqi,
+      pm25: Math.round(air.components.pm2_5),
+      pm10: Math.round(air.components.pm10),
+    }
+  } catch (error) {
+    console.error('상세 날씨 API 호출 실패:', error)
+    errorMessage.value = '상세 날씨 데이터를 가져오지 못했습니다. API Key와 네트워크를 확인하세요.'
+  } finally {
+    isLoading.value = false
+  }
+}
 
 onMounted(() => {
-  const cityId = route.params.cityId
-  if (mockDetails[cityId]) {
-    cityData.value = mockDetails[cityId]
+  const targetCity = cityMapping[route.params.cityId]
+  if (targetCity) {
+    fetchCityDetail(targetCity)
   }
 })
 
@@ -106,7 +97,11 @@ const goSpots = () => {
   <div class="detail-wrapper">
     <h2>📊 지역별 상세 기상관측 정보</h2>
 
-    <div v-if="cityData" class="detail-card">
+    <p v-if="isLoading" class="loading">⏳ 상세 날씨 데이터를 불러오는 중...</p>
+    <div v-else-if="errorMessage" class="detail-card">
+      <p class="no-data">{{ errorMessage }}</p>
+    </div>
+    <div v-else-if="cityData" class="detail-card">
       <div class="detail-head">
         <button
           class="btn-favorite"
@@ -125,7 +120,11 @@ const goSpots = () => {
         }}{{ configStore.unitSymbol }}
       </p>
       <WeatherDetailList :city="cityData" />
-      <p class="observed">관측 시각: {{ cityData.observedAt }}</p>
+      <p v-if="airData" class="air">
+        🌫️ 대기질:
+        <strong :class="'aqi-' + airData.aqi">{{ aqiLabels[airData.aqi] }}</strong> (PM2.5
+        {{ airData.pm25 }} / PM10 {{ airData.pm10 }} ㎍/㎥)
+      </p>
     </div>
     <div v-else class="detail-card">
       <p class="no-data">😭 "{{ route.params.cityId }}"에 해당하는 도시 정보가 없습니다.</p>
@@ -195,10 +194,30 @@ const goSpots = () => {
   color: #495057;
   margin: 6px 0;
 }
-.observed {
+.air {
   margin-top: 10px;
-  font-size: 13px;
-  color: #868e96;
+  font-size: 14px;
+  color: #495057;
+}
+.aqi-1 {
+  color: #2e7d32;
+}
+.aqi-2 {
+  color: #42b883;
+}
+.aqi-3 {
+  color: #f39c12;
+}
+.aqi-4 {
+  color: #e67e22;
+}
+.aqi-5 {
+  color: #e74c3c;
+}
+.loading {
+  text-align: center;
+  color: #495057;
+  padding: 10px 0;
 }
 .no-data {
   text-align: center;
