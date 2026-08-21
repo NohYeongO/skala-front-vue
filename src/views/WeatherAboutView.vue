@@ -1,12 +1,18 @@
 <script setup>
-import { RouterLink } from 'vue-router'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const goHome = () => {
+  router.push('/')
+}
 </script>
 
 <template>
   <div class="about-wrapper">
     <h2>ℹ️ 서비스 소개</h2>
 
-    <div class="about-card">
+    <el-card shadow="never" class="about-card">
       <p><strong>SKALA Weather</strong>는 Vue 3 과정 실습용 날씨 대시보드입니다.</p>
       <ul>
         <li>도시별 날씨 카드를 한글 검색으로 찾고 ★ 즐겨찾기로 모아 볼 수 있습니다.</li>
@@ -16,9 +22,9 @@ import { RouterLink } from 'vue-router'
         </li>
         <li>Vue Router로 새로고침 없이 화면이 전환됩니다.</li>
       </ul>
-    </div>
+    </el-card>
 
-    <RouterLink to="/" class="link-home">← 메인 대시보드로 돌아가기</RouterLink>
+    <el-button type="primary" @click="goHome">← 메인 대시보드로 돌아가기</el-button>
   </div>
 </template>
 
@@ -34,27 +40,11 @@ import { RouterLink } from 'vue-router'
   margin-bottom: 16px;
 }
 .about-card {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 20px;
   margin-bottom: 15px;
   line-height: 1.7;
 }
 .about-card ul {
   padding-left: 20px;
   margin-top: 8px;
-}
-.link-home {
-  display: inline-block;
-  padding: 8px 14px;
-  font-size: 14px;
-  color: #fff;
-  background-color: #42b883;
-  border-radius: 6px;
-  text-decoration: none;
-}
-.link-home:hover {
-  background-color: #33a06f;
 }
 </style>

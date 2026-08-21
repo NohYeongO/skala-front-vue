@@ -23,6 +23,7 @@ const cityMapping = {
 }
 
 const aqiLabels = ['', '좋음', '양호', '보통', '나쁨', '매우 나쁨']
+const aqiTypes = ['', 'success', 'success', 'warning', 'danger', 'danger']
 
 const cityData = ref(null)
 const airData = ref(null)
@@ -97,42 +98,43 @@ const goSpots = () => {
   <div class="detail-wrapper">
     <h2>📊 지역별 상세 기상관측 정보</h2>
 
-    <p v-if="isLoading" class="loading">⏳ 상세 날씨 데이터를 불러오는 중...</p>
-    <div v-else-if="errorMessage" class="detail-card">
-      <p class="no-data">{{ errorMessage }}</p>
-    </div>
-    <div v-else-if="cityData" class="detail-card">
-      <div class="detail-head">
-        <button
-          class="btn-favorite"
-          :class="{ active: favoriteStore.favoriteIds.includes(route.params.cityId) }"
-          @click="favoriteStore.toggleFavorite(route.params.cityId)"
-        >
-          ★
-        </button>
-        <h3>📍 {{ cityData.name }}</h3>
-        <span class="region">{{ cityData.region }}</span>
-      </div>
-      <p class="temp">{{ displayTemp }}{{ configStore.unitSymbol }}</p>
-      <p class="status">{{ cityData.status }}</p>
-      <p class="range">
-        최저 {{ displayTempMin }}{{ configStore.unitSymbol }} / 최고 {{ displayTempMax
-        }}{{ configStore.unitSymbol }}
-      </p>
-      <WeatherDetailList :city="cityData" />
-      <p v-if="airData" class="air">
-        🌫️ 대기질:
-        <strong :class="'aqi-' + airData.aqi">{{ aqiLabels[airData.aqi] }}</strong> (PM2.5
-        {{ airData.pm25 }} / PM10 {{ airData.pm10 }} ㎍/㎥)
-      </p>
-    </div>
-    <div v-else class="detail-card">
-      <p class="no-data">😭 "{{ route.params.cityId }}"에 해당하는 도시 정보가 없습니다.</p>
+    <div v-loading="isLoading" class="detail-area">
+      <el-alert v-if="errorMessage" type="error" :title="errorMessage" :closable="false" />
+      <el-card v-else-if="cityData" shadow="never">
+        <div class="detail-head">
+          <el-button
+            link
+            class="btn-favorite"
+            :class="{ active: favoriteStore.favoriteIds.includes(route.params.cityId) }"
+            @click="favoriteStore.toggleFavorite(route.params.cityId)"
+          >
+            ★
+          </el-button>
+          <h3>📍 {{ cityData.name }}</h3>
+          <span class="region">{{ cityData.region }}</span>
+        </div>
+        <p class="temp">{{ displayTemp }}{{ configStore.unitSymbol }}</p>
+        <p class="status">{{ cityData.status }}</p>
+        <p class="range">
+          최저 {{ displayTempMin }}{{ configStore.unitSymbol }} / 최고 {{ displayTempMax
+          }}{{ configStore.unitSymbol }}
+        </p>
+        <WeatherDetailList :city="cityData" />
+        <p v-if="airData" class="air">
+          🌫️ 대기질:
+          <el-tag :type="aqiTypes[airData.aqi]" size="small">{{ aqiLabels[airData.aqi] }}</el-tag>
+          (PM2.5 {{ airData.pm25 }} / PM10 {{ airData.pm10 }} ㎍/㎥)
+        </p>
+      </el-card>
+      <el-empty
+        v-else-if="!isLoading"
+        :description="`😭 ${route.params.cityId}에 해당하는 도시 정보가 없습니다.`"
+      />
     </div>
 
     <div class="actions">
-      <button class="btn-home" @click="goHome">← 메인 대시보드로 돌아가기</button>
-      <button v-if="cityData" class="btn-spots" @click="goSpots">🏞️ 관광지 날씨 보기</button>
+      <el-button type="primary" @click="goHome">← 메인 대시보드로 돌아가기</el-button>
+      <el-button v-if="cityData" @click="goSpots">🏞️ 관광지 날씨 보기</el-button>
     </div>
   </div>
 </template>
@@ -148,30 +150,22 @@ const goSpots = () => {
   font-weight: 700;
   margin-bottom: 16px;
 }
-.detail-card {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 20px;
+.detail-area {
+  min-height: 80px;
   margin-bottom: 15px;
 }
 .detail-head {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
 }
 .detail-head h3 {
   font-size: 1.3rem;
   font-weight: 700;
 }
 .btn-favorite {
-  padding: 0;
   font-size: 22px;
-  line-height: 1;
   color: #ced4da;
-  background: none;
-  border: none;
-  cursor: pointer;
 }
 .btn-favorite.active {
   color: #f1c40f;
@@ -199,56 +193,8 @@ const goSpots = () => {
   font-size: 14px;
   color: #495057;
 }
-.aqi-1 {
-  color: #2e7d32;
-}
-.aqi-2 {
-  color: #42b883;
-}
-.aqi-3 {
-  color: #f39c12;
-}
-.aqi-4 {
-  color: #e67e22;
-}
-.aqi-5 {
-  color: #e74c3c;
-}
-.loading {
-  text-align: center;
-  color: #495057;
-  padding: 10px 0;
-}
-.no-data {
-  text-align: center;
-  color: #e74c3c;
-}
 .actions {
   display: flex;
   gap: 10px;
-}
-.btn-home {
-  padding: 8px 14px;
-  font-size: 14px;
-  color: #fff;
-  background-color: #42b883;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.btn-home:hover {
-  background-color: #33a06f;
-}
-.btn-spots {
-  padding: 8px 14px;
-  font-size: 14px;
-  color: #2c3e50;
-  background-color: #f1f3f5;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.btn-spots:hover {
-  background-color: #e9ecef;
 }
 </style>
