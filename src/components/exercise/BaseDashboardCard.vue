@@ -6,6 +6,6 @@
 
 <style scoped>
 .base-dashboard-card {
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 </style>

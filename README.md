@@ -1,5 +1,7 @@
 ## SKALA - Vue 과제
 
+배포 주소: https://skala-vue.beta-app.kr/ (GitHub Pages · 커스텀 도메인)
+
 ## 과제 1. Weather Mockup
 
 ### 요구사항
@@ -782,3 +784,122 @@ const aqiTypes = ['', 'success', 'success', 'warning', 'danger', 'danger']
 ```html
 <el-tag :type="aqiTypes[airData.aqi]" size="small">{{ aqiLabels[airData.aqi] }}</el-tag>
 ```
+
+## 과제 8. 과제 확장 (최종 구현)
+
+### 요구사항
+
+외부 라이브러리 사용을 통해 과제를 확장하고 기능을 완성한다.
+
+### 구현 내용
+
+작성 파일: `src/views/WeatherCitiesView.vue` `WeatherPlanView.vue` `WeatherSpotDetailView.vue` `WeatherHistoryView.vue` `src/components/exercise/SpotCardDialog.vue` `WeatherAmbience.vue` `src/stores/weatherStore.js` `src/composables/useSkyTheme.js` `src/assets/no-image.svg` (수정: `WeatherHomeView.vue` `WeatherSpotsView.vue` `WeatherDetailView.vue` `WeatherAboutView.vue` `WeatherCard.vue` `SearchBar.vue` `UnitToggler.vue` `App.vue` `router/index.js` `assets/main.css`)
+
+컨셉은 **"날씨로 고르는 오늘의 여행"**입니다. 지도에서 아무 곳이나 골라 그 자리의 날씨와 근처 관광지를 보고 날씨가 정해 주는 추천 코스를 받아 관광지 카드로 남깁니다. 외부 라이브러리는 지도 `leaflet`과 카드 이미지 `html2canvas`를 추가했고 과제 1~7에서 만든 기능(검색 · 즐겨찾기 · 상세 · 단위 변환 · 관광지 날씨 · Element Plus)은 모두 유지한 채 발전시켰습니다.
+
+**1. 전국 날씨 지도 (`/`)**
+
+- Leaflet 지도를 홈 전체로 키우고 특별시·광역시·특별자치시도 9곳(서울 인천 대전 대구 광주 울산 부산 세종 제주)에 날씨 아이콘과 기온이 적힌 마커를 찍었습니다. 즐겨찾기 도시는 ★ 마커 선택 도시는 파란 마커입니다.
+- 도시 마커를 누르면 TourAPI `locationBasedList2`로 반경 10km 관광지(최대 40곳)를 초록 점으로 표시하고 점을 누르면 사진 · 이름 · 주소 팝업이 뜹니다.
+- 지도 아무 곳이나 클릭하면 그 좌표로 OpenWeather를 호출해 📍 마커와 날씨 팝업을 띄우고 근처 관광지를 같이 보여줍니다. 팝업의 `관광지 날씨` `추천 코스 보기` 버튼으로 이어집니다.
+- `minZoom`과 `maxBounds`로 한반도 밖으로 나가지 못하게 했고 처음에는 사용법 안내 카드를 띄웁니다. 단위(℃/℉)를 바꾸면 마커 기온도 바뀝니다.
+
+```js
+map = L.map(mapRef.value, {
+  minZoom: 7,
+  maxZoom: 14,
+  maxBounds: [
+    [32.8, 124.0],
+    [39.0, 131.5],
+  ],
+  maxBoundsViscosity: 1.0,
+}).setView([35.9, 127.8], 7)
+
+map.on('click', (event) => {
+  explorePoint(event.latlng)
+})
+```
+
+**2. 도시 날씨 (`/cities`)**
+
+- 과제 1~3의 검색 · 즐겨찾기 · 카드 기능을 이 탭으로 옮겼습니다. 검색창 아래 대표 지역 9곳을 가로 슬라이더(`el-scrollbar`)로 두고 누르거나 검색한 도시만 `🔎 내가 찾은 날씨` 보드에 카드로 모입니다.
+- 입력하면 목록을 바로 거르고 `전국 검색`을 누르면 OpenWeather Geocoding API로 한글 도시명을 좌표로 바꿔 날씨를 받아 카드와 지도 마커에 추가합니다. `강릉`처럼 단독 이름은 `강릉시` `강릉군` 순으로 재시도하고 한국(KR) 결과만 씁니다.
+- 도시 날씨 호출은 `stores/weatherStore.js`로 모아 지도와 도시 탭이 한 번 받은 데이터를 같이 씁니다.
+
+```js
+async function searchCity(query) {
+  const place = await findPlace(query)
+  const weatherResponse = await axios.get(
+    `${BASE_URL}/weather?lat=${place.lat}&lon=${place.lon}&appid=${API_KEY}&units=metric&lang=kr`,
+  )
+  searchedList.value.unshift(
+    toCityWeather(weatherResponse.data, { id, name: koreanName, searched: true }),
+  )
+}
+```
+
+**3. 관광지 날씨 (`/spots`) 와 관광지 상세 (`/spot/:contentId`)**
+
+- 기준점(지도에서 찍은 위치나 도시) 좌표로 반경 10km 관광지 20곳을 거리순으로 받고 관광지마다 위경도로 OpenWeather를 `axios.all` 호출해 그 자리의 날씨를 붙였습니다. 카드에 `기준점에서 0.5km`처럼 거리를 적습니다.
+- `상세보기`는 TourAPI `detailCommon2`로 소개글 · 전화 · 홈페이지 · 사진을 받고 그 좌표의 날씨와 대기질을 히어로로 보여주는 관광지 상세로 이동합니다. 사진이 없으면 공용 기본 이미지(`assets/no-image.svg`)를 씁니다.
+
+**4. 추천 코스 (`/plan`)**
+
+- 도시를 고르거나 지도에서 넘어온 좌표로 현재 날씨와 대기질을 받아 규칙대로 코스 종류를 정합니다. 비·눈이면 실내 / 30℃ 이상이면 실내 / 미세먼지 나쁨(aqi 4 이상)이면 실내 / 그 외 야외입니다.
+- 정해진 종류에 맞춰 관광지(12) 또는 문화시설(14)을 거리순 5곳 받아 `el-timeline` 코스로 보여주고 야외/실내 버튼으로 바꿀 수 있습니다. 실내 추천인데 실내 장소가 없으면 야외로 자동 전환합니다. 코스 항목마다 `상세보기`와 `관광지 카드 만들기`가 있습니다.
+
+```js
+const decideCourse = (data) => {
+  if (['Rain', 'Drizzle', 'Thunderstorm', 'Snow'].includes(data.main)) {
+    return { type: 'indoor', reason: `${data.status} 예보라 실내 코스를 추천해요` }
+  }
+  if (data.temp >= 30) {
+    return { type: 'indoor', reason: `기온이 ${data.temp}℃로 더워서 실내 코스를 추천해요` }
+  }
+  if (data.aqi >= 4) {
+    return { type: 'indoor', reason: '미세먼지가 나빠서 실내 코스를 추천해요' }
+  }
+  return {
+    type: 'outdoor',
+    reason: `${data.status}에 ${data.temp}℃, 야외 코스 다니기 좋은 날이에요`,
+  }
+}
+```
+
+**5. 관광지 카드 (SpotCardDialog)**
+
+- 관광지 사진을 그대로 배경으로 쓰고 도시 · 날짜 · 기온 · 날씨 이모지 · 관광지명 · 한 줄 문구를 얹은 카드를 `el-dialog`로 보여주고 `PNG로 저장`을 누르면 `html2canvas`로 캡처해 내려받습니다. 사진 서버가 CORS를 허용하지 않아 이미지 프록시(`images.weserv.nl`)를 거칩니다.
+
+```js
+const saveSpotCard = async () => {
+  const canvas = await html2canvas(spotCardRef.value, {
+    useCORS: true,
+    scale: 2,
+    backgroundColor: null,
+  })
+  const link = document.createElement('a')
+  link.href = canvas.toDataURL('image/png')
+  link.download = `spot-card-${props.cityName}-${props.spot.name}.png`
+  link.click()
+}
+```
+
+**6. 과제 기록 (`/history`) 와 소개 (`/about`)**
+
+- 과제 1~7을 `el-timeline`으로 나열해 요약 · 배운 내용 · 구성 파일 · GitHub 브랜치/PR 링크를 보여주고 `실제 화면 열기`를 누르면 그 단계 브랜치를 그대로 빌드해 `/archive/01-mockup/`처럼 올린 당시 앱이 `el-dialog` 안 iframe으로 열려 직접 눌러 볼 수 있습니다.
+- 소개 페이지에는 앱 설명과 아래 트러블슈팅 기록을 `el-collapse`로 넣었습니다.
+
+**7. 디자인**
+
+- Pretendard 글꼴 · 하늘색 포인트로 Element Plus 테마 변수를 맞추고 헤더는 반투명 글래스 · 카드는 말풍선형 라운드 · 모바일에서는 메뉴가 아이콘만 남는 반응형으로 정리했습니다.
+- 선택한 도시 날씨에 따라 배경색(`body[data-weather]`)이 바뀌고 `WeatherAmbience.vue` 캔버스가 비 · 눈 · 햇살 · 구름 파티클을 그립니다(모션 최소화 설정이면 정지).
+
+### 트러블슈팅 기록
+
+- **즐겨찾기 개수는 늘었는데 카드 별이 안 켜짐** — 검색한 도시의 상세 페이지에서 ★를 누르면 좌표 4자리로 키(`search_37.8811_127.7298`)를 만들고 카드 쪽 id는 좌표 3자리(`search_37.881_127.730`)라 서로 다른 id로 저장되는 문제였습니다. 상세로 이동할 때 도시 id를 쿼리(`?id=`)로 같이 넘기고 상세에서는 `route.query.id`를 즐겨찾기 키로 쓰도록 통일했습니다.
+- **코스 추천 태그가 안 사라짐** — `el-tag`를 `v-if`로 지웠는데 내장 사라짐 애니메이션이 끝나지 않아 잔상이 남았습니다. `disable-transitions` 속성으로 해결했습니다.
+- **실내 장소가 없는 곳에서 "API 오류" 문구** — TourAPI가 결과 0건이면 `items`를 빈 문자열로 주어 `.map`에서 예외가 났습니다. `body.items && body.items.item ? body.items.item : []`로 빈 결과를 정상 처리하고 실내 추천인데 0건이면 야외 코스로 자동 전환하도록 했습니다.
+- **관광지 사진을 카드 이미지(canvas)에 그릴 수 없음** — 사진 서버(`tong.visitkorea.or.kr`)가 CORS 헤더를 주지 않아 `html2canvas`가 이미지를 읽지 못했습니다. CORS를 허용하는 이미지 프록시(`images.weserv.nl`)를 거쳐 불러오도록 했습니다.
+- **"강릉"처럼 단독 이름은 Geocoding 검색이 안 됨** — OpenWeather Geocoding이 `강릉시`는 찾지만 `강릉`은 못 찾고 `안동`은 중국 단둥이 먼저 나왔습니다. `입력값 → 입력값+시 → 입력값+군` 순으로 재시도하고 `country === 'KR'`인 결과만 쓰도록 했습니다.
+- **TourAPI `areaCode` 필터로 검색하면 결과가 비어 있음** — 행정구역 개편 이후 코드가 맞지 않아 발생했습니다. `areaCode` 대신 좌표 기반(`locationBasedList2`)과 키워드 검색으로 바꿨습니다.
+- **지도 기온 마커가 세로로 찌그러짐** — Leaflet `divIcon` 기본 크기(12×12)가 인라인으로 박혀 내용이 넘쳤습니다. `.temp-marker-wrap { width: auto !important; height: auto !important }`와 `width: max-content`로 해결했습니다.
