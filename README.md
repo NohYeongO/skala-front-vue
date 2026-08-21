@@ -1,5 +1,7 @@
 ## SKALA - Vue 과제
 
+배포 주소: https://skala-vue.beta-app.kr/ (GitHub Pages · 커스텀 도메인)
+
 ## 과제 1. Weather Mockup
 
 ### 요구사항
@@ -783,7 +785,7 @@ const aqiTypes = ['', 'success', 'success', 'warning', 'danger', 'danger']
 <el-tag :type="aqiTypes[airData.aqi]" size="small">{{ aqiLabels[airData.aqi] }}</el-tag>
 ```
 
-## 과제 8. 과제 확장 (전국 날씨 지도 · 오늘의 여행 코스 · 관광지 카드)
+## 과제 8. 과제 확장 (최종 구현)
 
 ### 요구사항
 
@@ -791,18 +793,16 @@ const aqiTypes = ['', 'success', 'success', 'warning', 'danger', 'danger']
 
 ### 구현 내용
 
-작성 파일: `src/views/WeatherPlanView.vue` `src/views/WeatherCitiesView.vue` `src/views/WeatherSpotDetailView.vue` `src/components/exercise/SpotCardDialog.vue` `src/stores/weatherStore.js` `src/composables/useSkyTheme.js` `src/assets/no-image.svg` (수정: `WeatherHomeView.vue` `WeatherSpotsView.vue` `WeatherDetailView.vue` `WeatherCard.vue` `UnitToggler.vue` `App.vue` `router/index.js` `assets/main.css`)
+작성 파일: `src/views/WeatherCitiesView.vue` `WeatherPlanView.vue` `WeatherSpotDetailView.vue` `WeatherHistoryView.vue` `src/components/exercise/SpotCardDialog.vue` `WeatherAmbience.vue` `src/stores/weatherStore.js` `src/composables/useSkyTheme.js` `src/assets/no-image.svg` (수정: `WeatherHomeView.vue` `WeatherSpotsView.vue` `WeatherDetailView.vue` `WeatherAboutView.vue` `WeatherCard.vue` `SearchBar.vue` `UnitToggler.vue` `App.vue` `router/index.js` `assets/main.css`)
 
-날씨를 보는 앱에서 한 발 더 나가 **지도에서 아무 곳이나 골라 그 자리의 날씨와 근처 관광지를 보고 날씨가 정해 주는 여행 코스를 받아 관광지 카드로 남기는** 흐름을 만들었습니다. 외부 라이브러리는 지도를 그리는 `leaflet`과 관광지 카드 이미지를 만드는 `html2canvas`를 사용했습니다.
+컨셉은 **"날씨로 고르는 오늘의 여행"**입니다. 지도에서 아무 곳이나 골라 그 자리의 날씨와 근처 관광지를 보고 날씨가 정해 주는 추천 코스를 받아 관광지 카드로 남깁니다. 외부 라이브러리는 지도 `leaflet`과 카드 이미지 `html2canvas`를 추가했고 과제 1~7에서 만든 기능(검색 · 즐겨찾기 · 상세 · 단위 변환 · 관광지 날씨 · Element Plus)은 모두 유지한 채 발전시켰습니다.
 
-**전국 날씨 지도 (홈)**
+**1. 전국 날씨 지도 (`/`)**
 
-홈은 지도 한 장으로 크게 잡았습니다. 기존의 도시 검색과 날씨 카드는 `🏙️ 도시 날씨` 탭(`/cities`)으로 옮겼습니다. 검색창 아래에 특별시·광역시·특별자치시도 9곳(서울 인천 대전 대구 광주 울산 부산 세종 제주)을 가로로 넘기는 대표 지역 슬라이더(`el-scrollbar`)로 두고 누르거나 검색한 도시만 아래 `🔎 내가 찾은 날씨` 보드에 카드로 모입니다. 도시 날씨 호출은 `stores/weatherStore.js`로 모아 두 화면이 한 번 받은 데이터를 같이 씁니다. 도시 날씨 탭의 검색창은 입력하면 목록을 바로 거르고 `전국 검색`을 누르면 OpenWeather Geocoding API로 한글 도시명을 좌표로 바꿔 그 도시 날씨를 받아 카드와 지도 마커에 추가합니다(검색한 도시는 `/weather/search?lat=&lon=` 상세로 이어짐). 지도 위에는 처음에 사용법 안내 카드를 띄우고 도시나 위치를 고르면 사라집니다. Leaflet 지도에는 도시마다 날씨 아이콘과 현재 기온이 적힌 마커를 찍었습니다. 즐겨찾기한 도시는 ★가 붙은 마커로 강조되고 선택한 도시는 파란 마커로 바뀝니다. 지도는 `minZoom`과 `maxBounds`로 한반도 밖으로 나가지 못하게 묶었습니다.
-
-- 도시 마커를 누르면 도시가 선택되고 TourAPI `locationBasedList2`로 그 도시 반경 10km 관광지를 전부(최대 40곳) 받아 초록 점 마커로 찍습니다. 점을 누르면 사진 이름 주소 팝업이 뜹니다.
-- 도시가 아니어도 **지도 아무 곳이나 클릭**하면 그 좌표로 OpenWeather를 호출해 📍 마커와 날씨 팝업(기온 체감 습도 바람)을 띄우고 근처 관광지를 같이 표시합니다. 위치 이름은 가장 가까운 관광지 주소의 시도·시군구로 표시합니다.
-- 팝업과 지도 상단 버튼으로 `이 위치 관광지 날씨 보기`(`/spots?lat=&lon=&name=`)와 `추천 코스 보기`(`/plan?lat=&lon=`)로 넘어갑니다. `전국 보기`로 마커와 확대를 초기화하고 단위(℃/℉)를 바꾸면 마커 기온도 바뀝니다.
-- 선택한 도시나 위치의 날씨에 따라 페이지 배경이 바뀝니다(`body[data-weather]`). 비면 빗방울이 바람 방향으로 떨어지고 눈이면 눈송이가 흔들리며 내리고 맑음·폭염이면 햇살 글로우와 빛 입자가 떠오르고 구름이면 구름 덩어리가 흐르는 Canvas 파티클 애니메이션(`components/exercise/WeatherAmbience.vue`)을 화면 뒤에 깔았습니다. 모션 최소화 설정이면 정지 화면으로 둡니다.
+- Leaflet 지도를 홈 전체로 키우고 특별시·광역시·특별자치시도 9곳(서울 인천 대전 대구 광주 울산 부산 세종 제주)에 날씨 아이콘과 기온이 적힌 마커를 찍었습니다. 즐겨찾기 도시는 ★ 마커 선택 도시는 파란 마커입니다.
+- 도시 마커를 누르면 TourAPI `locationBasedList2`로 반경 10km 관광지(최대 40곳)를 초록 점으로 표시하고 점을 누르면 사진 · 이름 · 주소 팝업이 뜹니다.
+- 지도 아무 곳이나 클릭하면 그 좌표로 OpenWeather를 호출해 📍 마커와 날씨 팝업을 띄우고 근처 관광지를 같이 보여줍니다. 팝업의 `관광지 날씨` `추천 코스 보기` 버튼으로 이어집니다.
+- `minZoom`과 `maxBounds`로 한반도 밖으로 나가지 못하게 했고 처음에는 사용법 안내 카드를 띄웁니다. 단위(℃/℉)를 바꾸면 마커 기온도 바뀝니다.
 
 ```js
 map = L.map(mapRef.value, {
@@ -813,17 +813,22 @@ map = L.map(mapRef.value, {
     [39.0, 131.5],
   ],
   maxBoundsViscosity: 1.0,
-}).setView([36.4, 127.9], 7)
+}).setView([35.9, 127.8], 7)
 
 map.on('click', (event) => {
   explorePoint(event.latlng)
 })
 ```
 
+**2. 도시 날씨 (`/cities`)**
+
+- 과제 1~3의 검색 · 즐겨찾기 · 카드 기능을 이 탭으로 옮겼습니다. 검색창 아래 대표 지역 9곳을 가로 슬라이더(`el-scrollbar`)로 두고 누르거나 검색한 도시만 `🔎 내가 찾은 날씨` 보드에 카드로 모입니다.
+- 입력하면 목록을 바로 거르고 `전국 검색`을 누르면 OpenWeather Geocoding API로 한글 도시명을 좌표로 바꿔 날씨를 받아 카드와 지도 마커에 추가합니다. `강릉`처럼 단독 이름은 `강릉시` `강릉군` 순으로 재시도하고 한국(KR) 결과만 씁니다.
+- 도시 날씨 호출은 `stores/weatherStore.js`로 모아 지도와 도시 탭이 한 번 받은 데이터를 같이 씁니다.
+
 ```js
 async function searchCity(query) {
-  const geoResponse = await axios.get(`${GEO_URL}?q=${query}&limit=1&appid=${API_KEY}`)
-  const place = geoResponse.data[0]
+  const place = await findPlace(query)
   const weatherResponse = await axios.get(
     `${BASE_URL}/weather?lat=${place.lat}&lon=${place.lon}&appid=${API_KEY}&units=metric&lang=kr`,
   )
@@ -833,39 +838,15 @@ async function searchCity(query) {
 }
 ```
 
-```js
-const marker = L.marker([city.lat, city.lon], {
-  icon: L.divIcon({ className: 'temp-marker-wrap', html: markerHtml(city) }),
-})
-marker.on('click', () => {
-  selectCity(city)
-  map.flyTo([city.lat, city.lon], 12)
-  fetchNearbySpots(city)
-})
-```
+**3. 관광지 날씨 (`/spots`) 와 관광지 상세 (`/spot/:contentId`)**
 
-**관광지 날씨 (`/spots`) 와 관광지 상세 (`/spot/:contentId`)**
+- 기준점(지도에서 찍은 위치나 도시) 좌표로 반경 10km 관광지 20곳을 거리순으로 받고 관광지마다 위경도로 OpenWeather를 `axios.all` 호출해 그 자리의 날씨를 붙였습니다. 카드에 `기준점에서 0.5km`처럼 거리를 적습니다.
+- `상세보기`는 TourAPI `detailCommon2`로 소개글 · 전화 · 홈페이지 · 사진을 받고 그 좌표의 날씨와 대기질을 히어로로 보여주는 관광지 상세로 이동합니다. 사진이 없으면 공용 기본 이미지(`assets/no-image.svg`)를 씁니다.
 
-정해 둔 관광지 5곳 대신 **기준점**(지도에서 찍은 위치나 도시)의 좌표를 받아 반경 10km 관광지 20곳을 기준점 거리순으로 보여주고 관광지마다 위경도로 OpenWeather를 `axios.all` 호출해 **그 자리의 날씨**를 붙였습니다. 상단에는 기준점 이름과 날씨를 보여주고 각 카드에 `기준점에서 0.5km`처럼 거리를 적습니다. 기존 `/weather/:cityId/spots` 경로도 같은 화면으로 동작합니다. 사진이 없는 관광지는 공용 기본 이미지(`assets/no-image.svg`)를 씁니다.
+**4. 추천 코스 (`/plan`)**
 
-카드의 `상세보기`는 관광지 상세 페이지로 이동합니다. TourAPI `detailCommon2`로 소개글 주소 전화 홈페이지 대표 사진을 받고 그 좌표의 현재 날씨와 대기질을 히어로로 보여주며 `관광지 카드 만들기`로 바로 카드 이미지를 만들 수 있습니다. 도시 상세 페이지에서는 관광지 버튼을 빼고 지도에서만 관광지로 넘어가게 정리했습니다.
-
-```js
-const weatherRequests = items.map((item) =>
-  axios.get(
-    `${BASE_URL}/weather?lat=${item.mapy}&lon=${item.mapx}&appid=${API_KEY}&units=metric&lang=kr`,
-  ),
-)
-const weatherResponses = await axios.all(weatherRequests)
-```
-
-**과제 기록 (`/history`) 와 소개 (`/about`)**
-
-과제 1~7을 단계별로 돌아볼 수 있게 `📚 과제 기록` 페이지를 두었습니다. 각 단계의 요약 배운 내용 태그 구성 파일 목록과 함께 GitHub 브랜치·PR 링크를 `el-timeline`으로 나열했고 `실제 화면 열기`를 누르면 그 단계 브랜치를 그대로 빌드해 `/archive/01-mockup/`처럼 하위 경로에 올린 당시 앱이 `el-dialog` 안 iframe으로 열려 직접 눌러 볼 수 있습니다. 소개 페이지에는 앱 설명과 함께 아래 트러블슈팅 기록을 `el-collapse`로 넣었습니다.
-
-**오늘의 여행 코스 (`/plan`)**
-
-도시를 고르거나 지도에서 넘어온 좌표로 OpenWeather 현재 날씨와 대기질을 받아 규칙대로 코스 종류를 정합니다. 비나 눈이면 실내 / 기온 30℃ 이상이면 실내 / 미세먼지 나쁨(aqi 4 이상)이면 실내 / 그 외에는 야외입니다. 정해진 종류에 맞춰 TourAPI로 반경 10km의 관광지(12) 또는 문화시설(14)을 거리순 5곳 받아 `el-timeline`으로 코스를 보여주고 야외/실내 버튼으로 바꿀 수 있습니다. 실내를 추천했는데 근처에 실내 장소가 없으면 야외 코스로 바꿔 보여주고 결과가 없는 쪽은 `el-empty`로 안내합니다. 상단 히어로 배경은 날씨에 따라 바뀝니다(맑음 하늘색 / 구름 회청색 / 비 남색 / 눈 연한 하늘색 / 30℃ 이상 주황).
+- 도시를 고르거나 지도에서 넘어온 좌표로 현재 날씨와 대기질을 받아 규칙대로 코스 종류를 정합니다. 비·눈이면 실내 / 30℃ 이상이면 실내 / 미세먼지 나쁨(aqi 4 이상)이면 실내 / 그 외 야외입니다.
+- 정해진 종류에 맞춰 관광지(12) 또는 문화시설(14)을 거리순 5곳 받아 `el-timeline` 코스로 보여주고 야외/실내 버튼으로 바꿀 수 있습니다. 실내 추천인데 실내 장소가 없으면 야외로 자동 전환합니다. 코스 항목마다 `상세보기`와 `관광지 카드 만들기`가 있습니다.
 
 ```js
 const decideCourse = (data) => {
@@ -885,9 +866,9 @@ const decideCourse = (data) => {
 }
 ```
 
-**관광지 카드 (SpotCardDialog)**
+**5. 관광지 카드 (SpotCardDialog)**
 
-코스 항목마다 `상세보기`(관광지 상세로 이동)와 `관광지 카드 만들기` 버튼이 있습니다. 카드 만들기를 누르면 관광지 사진을 그대로 배경으로 쓰고 도시 날짜 기온 날씨 이모지 관광지명 한 줄 문구를 얹은 카드를 보여줍니다. 문구는 `el-input`으로 바꿀 수 있고 `PNG로 저장`을 누르면 `html2canvas`로 카드 영역을 캡처해 이미지 파일로 내려받습니다. 관광지 사진 서버가 CORS를 허용하지 않아 캔버스에 그릴 수 있도록 이미지 프록시(`images.weserv.nl`)를 거쳐 불러옵니다.
+- 관광지 사진을 그대로 배경으로 쓰고 도시 · 날짜 · 기온 · 날씨 이모지 · 관광지명 · 한 줄 문구를 얹은 카드를 `el-dialog`로 보여주고 `PNG로 저장`을 누르면 `html2canvas`로 캡처해 내려받습니다. 사진 서버가 CORS를 허용하지 않아 이미지 프록시(`images.weserv.nl`)를 거칩니다.
 
 ```js
 const saveSpotCard = async () => {
@@ -903,9 +884,15 @@ const saveSpotCard = async () => {
 }
 ```
 
-**디자인**
+**6. 과제 기록 (`/history`) 와 소개 (`/about`)**
 
-Pretendard 글꼴과 하늘색 포인트 컬러로 Element Plus 테마 변수(`--el-color-primary` 등)를 맞추고 배경은 천천히 움직이는 블러 그라데이션으로 두었습니다. 배경색은 `composables/useSkyTheme.js`의 `applySkyTheme`이 `body[data-weather]`를 바꿔 선택한 도시 날씨(맑음·구름·비·눈·폭염)에 따라 변합니다. 헤더는 반투명 글래스 스타일로 상단에 고정되고(로고를 누르면 홈으로 이동) 카드는 크게 둥근 모서리(한쪽만 각진 말풍선 형태)와 유리 질감으로 바꿨으며 상세 페이지는 날씨 그라데이션 히어로로 구성했습니다. 날씨 카드 지도 마커 관광지 목록에는 OpenWeather 아이콘 이미지를 씁니다.
+- 과제 1~7을 `el-timeline`으로 나열해 요약 · 배운 내용 · 구성 파일 · GitHub 브랜치/PR 링크를 보여주고 `실제 화면 열기`를 누르면 그 단계 브랜치를 그대로 빌드해 `/archive/01-mockup/`처럼 올린 당시 앱이 `el-dialog` 안 iframe으로 열려 직접 눌러 볼 수 있습니다.
+- 소개 페이지에는 앱 설명과 아래 트러블슈팅 기록을 `el-collapse`로 넣었습니다.
+
+**7. 디자인**
+
+- Pretendard 글꼴 · 하늘색 포인트로 Element Plus 테마 변수를 맞추고 헤더는 반투명 글래스 · 카드는 말풍선형 라운드 · 모바일에서는 메뉴가 아이콘만 남는 반응형으로 정리했습니다.
+- 선택한 도시 날씨에 따라 배경색(`body[data-weather]`)이 바뀌고 `WeatherAmbience.vue` 캔버스가 비 · 눈 · 햇살 · 구름 파티클을 그립니다(모션 최소화 설정이면 정지).
 
 ### 트러블슈팅 기록
 
@@ -916,4 +903,3 @@ Pretendard 글꼴과 하늘색 포인트 컬러로 Element Plus 테마 변수(`-
 - **"강릉"처럼 단독 이름은 Geocoding 검색이 안 됨** — OpenWeather Geocoding이 `강릉시`는 찾지만 `강릉`은 못 찾고 `안동`은 중국 단둥이 먼저 나왔습니다. `입력값 → 입력값+시 → 입력값+군` 순으로 재시도하고 `country === 'KR'`인 결과만 쓰도록 했습니다.
 - **TourAPI `areaCode` 필터로 검색하면 결과가 비어 있음** — 행정구역 개편 이후 코드가 맞지 않아 발생했습니다. `areaCode` 대신 좌표 기반(`locationBasedList2`)과 키워드 검색으로 바꿨습니다.
 - **지도 기온 마커가 세로로 찌그러짐** — Leaflet `divIcon` 기본 크기(12×12)가 인라인으로 박혀 내용이 넘쳤습니다. `.temp-marker-wrap { width: auto !important; height: auto !important }`와 `width: max-content`로 해결했습니다.
-
