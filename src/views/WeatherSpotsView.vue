@@ -1,9 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { useConfigStore } from '@/stores/configStore'
 
 const route = useRoute()
 const router = useRouter()
+const configStore = useConfigStore()
 
 const mockSpots = {
   city_01: {
@@ -162,6 +164,13 @@ onMounted(() => {
   }
 })
 
+const convertTemp = (rawTemp) => {
+  if (configStore.unit === 'fahrenheit') {
+    return Math.round((rawTemp * 9) / 5 + 32)
+  }
+  return rawTemp
+}
+
 const goDetail = () => {
   router.push('/weather/' + route.params.cityId)
 }
@@ -179,7 +188,9 @@ const goDetail = () => {
           <span class="category">{{ spot.category }}</span>
         </div>
         <p class="address">📍 {{ spot.address }}</p>
-        <p class="weather">🌡️ {{ spot.temp }}°C · {{ spot.status }}</p>
+        <p class="weather">
+          🌡️ {{ convertTemp(spot.temp) }}{{ configStore.unitSymbol }} · {{ spot.status }}
+        </p>
       </div>
     </div>
     <div v-else class="spot-card">

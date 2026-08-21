@@ -1,5 +1,6 @@
 <script setup>
 import { RouterLink, RouterView } from 'vue-router'
+import UnitToggler from './components/exercise/UnitToggler.vue'
 </script>
 
 <template>
@@ -9,6 +10,7 @@ import { RouterLink, RouterView } from 'vue-router'
       <RouterLink to="/" class="nav-item">🌦️ 날씨 대시보드</RouterLink>
       <span class="divider">|</span>
       <RouterLink to="/about" class="nav-item">ℹ️ 서비스 소개</RouterLink>
+      <UnitToggler />
     </nav>
     <main>
       <RouterView />
@@ -34,7 +36,6 @@ import { RouterLink, RouterView } from 'vue-router'
 }
 .navigation-bar {
   display: flex;
-  justify-content: center;
   align-items: center;
   max-width: 600px;
   margin: 0 auto 20px;
@@ -42,6 +43,9 @@ import { RouterLink, RouterView } from 'vue-router'
   background: #fff;
   border: 1px solid #e9ecef;
   border-radius: 8px;
+}
+.nav-item:first-child {
+  margin-left: auto;
 }
 .nav-item {
   color: #7f8c8d;

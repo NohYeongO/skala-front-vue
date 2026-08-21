@@ -1,11 +1,13 @@
 <script setup>
 import { ref, computed, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
+import { useFavoriteStore } from '@/stores/favoriteStore'
 import BaseDashboardCard from '@/components/exercise/BaseDashboardCard.vue'
 import SearchBar from '@/components/exercise/SearchBar.vue'
 import WeatherCard from '@/components/exercise/WeatherCard.vue'
 
 const router = useRouter()
+const favoriteStore = useFavoriteStore()
 
 const weatherList = ref([
   {
@@ -58,15 +60,12 @@ const weatherList = ref([
 const searchQuery = ref('')
 const selectedCityInfo = ref('날씨 카드를 클릭하면 선택된 도시가 여기에 표시됩니다.')
 const selectedCityId = ref('')
-const favoriteIds = ref([])
 const showOnlyFavorites = ref(false)
-
-const favoriteCount = computed(() => favoriteIds.value.length)
 
 const filteredWeatherList = computed(() => {
   const query = searchQuery.value
   const baseList = showOnlyFavorites.value
-    ? weatherList.value.filter((city) => favoriteIds.value.includes(city.id))
+    ? weatherList.value.filter((city) => favoriteStore.favoriteIds.includes(city.id))
     : weatherList.value
   if (!query) {
     return baseList
@@ -83,7 +82,7 @@ watchEffect(() => {
 })
 
 watch(
-  favoriteIds,
+  () => favoriteStore.favoriteIds,
   (newIds) => {
     console.log(`[watch deep] 즐겨찾기 변경: ${newIds.length}개 → [${newIds.join(', ')}]`)
   },
@@ -99,15 +98,6 @@ const selectCity = (city) => {
   selectedCityInfo.value = `${city.name}이 선택되었습니다.`
 }
 
-const toggleFavorite = (cityId) => {
-  const index = favoriteIds.value.findIndex((id) => id === cityId)
-  if (index === -1) {
-    favoriteIds.value.push(cityId)
-  } else {
-    favoriteIds.value.splice(index, 1)
-  }
-}
-
 const goDetail = (city) => {
   router.push('/weather/' + city.id)
 }
@@ -121,7 +111,7 @@ const goDetail = (city) => {
       <SearchBar :query="searchQuery" @update-query="updateQuery" />
       <label class="favorite-filter">
         <input type="checkbox" v-model="showOnlyFavorites" />
-        ⭐ 즐겨찾기만 보기 ({{ favoriteCount }}개)
+        ⭐ 즐겨찾기만 보기 ({{ favoriteStore.favoriteCount }}개)
       </label>
     </BaseDashboardCard>
 
@@ -132,13 +122,13 @@ const goDetail = (city) => {
         :key="city.id"
         :city="city"
         :is-selected="city.id === selectedCityId"
-        :is-favorite="favoriteIds.includes(city.id)"
+        :is-favorite="favoriteStore.favoriteIds.includes(city.id)"
         @select-card="selectCity"
         @click-detail="goDetail"
-        @toggle-favorite="toggleFavorite"
+        @toggle-favorite="favoriteStore.toggleFavorite"
       />
 
-      <p v-if="showOnlyFavorites && favoriteCount === 0" class="no-result">
+      <p v-if="showOnlyFavorites && favoriteStore.favoriteCount === 0" class="no-result">
         ⭐ 즐겨찾기한 도시가 없습니다. 카드의 별을 눌러 추가해 보세요.
       </p>
       <p v-else-if="filteredWeatherList.length === 0" class="no-result">

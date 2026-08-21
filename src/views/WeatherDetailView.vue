@@ -1,10 +1,14 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useConfigStore } from '@/stores/configStore'
+import { useFavoriteStore } from '@/stores/favoriteStore'
 import WeatherDetailList from '@/components/exercise/WeatherDetailList.vue'
 
 const route = useRoute()
 const router = useRouter()
+const configStore = useConfigStore()
+const favoriteStore = useFavoriteStore()
 
 const mockDetails = {
   city_01: {
@@ -78,6 +82,17 @@ onMounted(() => {
   }
 })
 
+const convertTemp = (rawTemp) => {
+  if (configStore.unit === 'fahrenheit') {
+    return Math.round((rawTemp * 9) / 5 + 32)
+  }
+  return rawTemp
+}
+
+const displayTemp = computed(() => convertTemp(cityData.value.temp))
+const displayTempMin = computed(() => convertTemp(cityData.value.tempMin))
+const displayTempMax = computed(() => convertTemp(cityData.value.tempMax))
+
 const goHome = () => {
   router.push('/')
 }
@@ -93,12 +108,22 @@ const goSpots = () => {
 
     <div v-if="cityData" class="detail-card">
       <div class="detail-head">
+        <button
+          class="btn-favorite"
+          :class="{ active: favoriteStore.favoriteIds.includes(route.params.cityId) }"
+          @click="favoriteStore.toggleFavorite(route.params.cityId)"
+        >
+          ★
+        </button>
         <h3>📍 {{ cityData.name }}</h3>
         <span class="region">{{ cityData.region }}</span>
       </div>
-      <p class="temp">{{ cityData.temp }}°C</p>
+      <p class="temp">{{ displayTemp }}{{ configStore.unitSymbol }}</p>
       <p class="status">{{ cityData.status }}</p>
-      <p class="range">최저 {{ cityData.tempMin }}°C / 최고 {{ cityData.tempMax }}°C</p>
+      <p class="range">
+        최저 {{ displayTempMin }}{{ configStore.unitSymbol }} / 최고 {{ displayTempMax
+        }}{{ configStore.unitSymbol }}
+      </p>
       <WeatherDetailList :city="cityData" />
       <p class="observed">관측 시각: {{ cityData.observedAt }}</p>
     </div>
@@ -139,6 +164,18 @@ const goSpots = () => {
 .detail-head h3 {
   font-size: 1.3rem;
   font-weight: 700;
+}
+.btn-favorite {
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+  color: #ced4da;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.btn-favorite.active {
+  color: #f1c40f;
 }
 .region {
   color: #868e96;

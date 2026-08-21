@@ -183,7 +183,11 @@ watch(
   <input type="checkbox" v-model="showOnlyFavorites" />
   ⭐ 즐겨찾기만 보기 ({{ favoriteCount }}개)
 </label>
-<button class="btn-favorite" :class="{ active: favoriteIds.includes(city.id) }" @click.stop="toggleFavorite(city.id)">
+<button
+  class="btn-favorite"
+  :class="{ active: favoriteIds.includes(city.id) }"
+  @click.stop="toggleFavorite(city.id)"
+>
   ★
 </button>
 ```
@@ -455,4 +459,135 @@ onMounted(() => {
 const goSpots = () => {
   router.push('/weather/' + route.params.cityId + '/spots')
 }
+```
+
+## 과제 5. Weather Store
+
+### 요구사항
+
+날씨 단위를 세팅하는 `stores/configStore.js`를 작성한다. state `unit`(초기값 celsius) getters `unitSymbol`(℃ / ℉) actions `toggleUnit`(celsius와 fahrenheit 토글)
+
+1. UnitToggler.vue - 대시보드 상단에 배치되어 단위 설정을 변경하는 UI 버튼과 영역
+2. Navigation Bar 옆에 UnitToggler.vue 배치
+3. 메인과 상세 날씨에 단위 설정 변경 적용
+4. 본인만의 추가 Store를 작성하고 활용하거나 configStore에 state getter action을 추가한다.
+
+### 구현 내용
+
+작성 파일: `src/stores/configStore.js` `src/stores/favoriteStore.js` `src/components/exercise/UnitToggler.vue` (수정: `App.vue` `WeatherCard.vue` `WeatherDetailList.vue` `WeatherHomeView.vue` `WeatherDetailView.vue` `WeatherSpotsView.vue`)
+
+**configStore.js**
+
+`defineStore` 안에서 state는 `ref` getters는 `computed` actions는 함수로 작성하고 `return`으로 공개했습니다.
+
+```js
+export const useConfigStore = defineStore('config', () => {
+  const unit = ref('celsius')
+
+  const unitSymbol = computed(() => {
+    return unit.value === 'celsius' ? '℃' : '℉'
+  })
+
+  function toggleUnit() {
+    unit.value = unit.value === 'celsius' ? 'fahrenheit' : 'celsius'
+  }
+
+  return { unit, unitSymbol, toggleUnit }
+})
+```
+
+**1. UnitToggler.vue**
+
+`useConfigStore()`로 스토어를 가져와 현재 단위를 표시하고 버튼 클릭 시 `toggleUnit` 액션을 호출합니다.
+
+```html
+<span class="unit-label">
+  단위: <strong>{{ configStore.unit === 'celsius' ? '섭씨(℃)' : '화씨(℉)' }}</strong>
+</span>
+<button class="btn-toggle" @click="configStore.toggleUnit">단위 변경</button>
+```
+
+**2. Navigation Bar 옆에 배치**
+
+App.vue의 `<nav>` 안 RouterLink 오른쪽에 `<UnitToggler />`를 두었습니다.
+
+```html
+<nav class="navigation-bar">
+  <RouterLink to="/" class="nav-item">🌦️ 날씨 대시보드</RouterLink>
+  <span class="divider">|</span>
+  <RouterLink to="/about" class="nav-item">ℹ️ 서비스 소개</RouterLink>
+  <UnitToggler />
+</nav>
+```
+
+**3. 메인과 상세 날씨에 단위 적용**
+
+온도를 보여주는 곳마다 `configStore.unit`이 fahrenheit이면 화씨로 변환하는 `computed`를 두고 기호는 `configStore.unitSymbol`로 붙였습니다. 메인 카드(WeatherCard)의 기온과 체감온도(WeatherDetailList) 상세 페이지의 기온 최저 최고 관광지 페이지의 기온에 적용했습니다.
+
+```js
+const props = defineProps({ city: { type: Object, required: true } })
+const configStore = useConfigStore()
+
+const displayTemp = computed(() => {
+  const rawTemp = props.city.temp
+  if (configStore.unit === 'fahrenheit') {
+    return Math.round((rawTemp * 9) / 5 + 32)
+  }
+  return rawTemp
+})
+```
+
+```html
+<span class="temp">{{ displayTemp }}{{ configStore.unitSymbol }}</span>
+```
+
+상세 페이지는 기온 최저 최고 세 값을 바꿔야 해서 같은 변환식을 `convertTemp` 함수로 두고 세 개의 `computed`에서 호출했습니다. 관광지 페이지는 `v-for` 목록이라 템플릿에서 `convertTemp(spot.temp)`를 직접 호출합니다.
+
+```js
+const displayTemp = computed(() => convertTemp(cityData.value.temp))
+const displayTempMin = computed(() => convertTemp(cityData.value.tempMin))
+const displayTempMax = computed(() => convertTemp(cityData.value.tempMax))
+```
+
+**4. 추가 Store (favoriteStore.js - 즐겨찾기)**
+
+과제 2부터 WeatherHomeView 안에 있던 즐겨찾기 상태를 `favoriteStore`로 옮겼습니다. 컴포넌트 안에 있을 때는 상세 페이지로 이동하면 즐겨찾기를 알 수 없고 홈을 떠났다 오면 초기화되는데 스토어로 두면 어느 페이지에서나 같은 값을 공유합니다. state `favoriteIds` getters `favoriteCount` actions `toggleFavorite` 구조는 그대로입니다.
+
+```js
+export const useFavoriteStore = defineStore('favorite', () => {
+  const favoriteIds = ref([])
+
+  const favoriteCount = computed(() => favoriteIds.value.length)
+
+  function toggleFavorite(cityId) {
+    const index = favoriteIds.value.findIndex((id) => id === cityId)
+    if (index === -1) {
+      favoriteIds.value.push(cityId)
+    } else {
+      favoriteIds.value.splice(index, 1)
+    }
+  }
+
+  return { favoriteIds, favoriteCount, toggleFavorite }
+})
+```
+
+WeatherHomeView는 로컬 `favoriteIds` `favoriteCount` `toggleFavorite`를 지우고 스토어를 바로 바인딩합니다. 즐겨찾기 변경 감시 `watch`는 감시 대상을 `() => favoriteStore.favoriteIds`로 바꿔 유지했습니다.
+
+```html
+<WeatherCard
+  :is-favorite="favoriteStore.favoriteIds.includes(city.id)"
+  @toggle-favorite="favoriteStore.toggleFavorite"
+/>
+```
+
+WeatherDetailView에도 같은 스토어로 ★ 버튼을 두어 상세 페이지에서 토글한 즐겨찾기가 홈 카드와 개수에 그대로 반영됩니다.
+
+```html
+<button
+  :class="{ active: favoriteStore.favoriteIds.includes(route.params.cityId) }"
+  @click="favoriteStore.toggleFavorite(route.params.cityId)"
+>
+  ★
+</button>
 ```

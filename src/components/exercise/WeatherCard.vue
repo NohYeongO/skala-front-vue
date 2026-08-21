@@ -1,7 +1,9 @@
 <script setup>
+import { computed } from 'vue'
+import { useConfigStore } from '@/stores/configStore'
 import WeatherDetailList from './WeatherDetailList.vue'
 
-defineProps({
+const props = defineProps({
   city: {
     type: Object,
     required: true,
@@ -29,6 +31,16 @@ const handleFavoriteClick = (cityId) => {
 const handleDetailClick = (city) => {
   emit('click-detail', city)
 }
+
+const configStore = useConfigStore()
+
+const displayTemp = computed(() => {
+  const rawTemp = props.city.temp
+  if (configStore.unit === 'fahrenheit') {
+    return Math.round((rawTemp * 9) / 5 + 32)
+  }
+  return rawTemp
+})
 </script>
 
 <template>
@@ -42,7 +54,7 @@ const handleDetailClick = (city) => {
         ★
       </button>
       <h4>{{ city.name }}</h4>
-      <span class="temp">{{ city.temp }}°C</span>
+      <span class="temp">{{ displayTemp }}{{ configStore.unitSymbol }}</span>
     </div>
     <p>현재 날씨: {{ city.status }}</p>
 
