@@ -45,7 +45,7 @@ const displayTemp = computed(() => {
 
 <template>
   <el-card
-    class="weather-card"
+    class="weather-card fade-up"
     :class="{ selected: isSelected }"
     shadow="hover"
     @click="handleCardClick(city)"
@@ -59,57 +59,99 @@ const displayTemp = computed(() => {
       >
         ★
       </el-button>
-      <h4>{{ city.name }}</h4>
-      <span class="temp">{{ displayTemp }}{{ configStore.unitSymbol }}</span>
-      <el-button size="small" class="btn-detail" @click.stop="handleDetailClick(city)">
+      <img
+        v-if="city.icon"
+        :src="`https://openweathermap.org/img/wn/${city.icon}@2x.png`"
+        :alt="city.status"
+        class="weather-icon"
+      />
+      <div class="card-title">
+        <h4>{{ city.name }}</h4>
+        <span class="status">{{ city.status }}</span>
+      </div>
+      <span class="temp"
+        >{{ displayTemp }}<small>{{ configStore.unitSymbol }}</small></span
+      >
+      <el-button
+        size="small"
+        type="primary"
+        plain
+        round
+        class="btn-detail"
+        @click.stop="handleDetailClick(city)"
+      >
         상세보기
       </el-button>
     </div>
-    <p>현재 날씨: {{ city.status }}</p>
 
     <WeatherDetailList :city="city" />
 
-    <el-tag v-if="city.temp >= 25" type="danger" size="small">🔥 더움 (25도 이상)</el-tag>
-    <el-tag v-else type="primary" size="small">❄️ 선선함 (25도 미만)</el-tag>
-    <el-tag v-if="city.humidity >= 70" type="success" size="small">💦 습함 (70% 이상)</el-tag>
-    <el-tag v-if="city.windSpeed >= 4" type="warning" size="small">🌬️ 바람 강함 (4m/s 이상)</el-tag>
+    <div class="card-tags">
+      <el-tag v-if="city.temp >= 25" type="danger" size="small" round>🔥 더움</el-tag>
+      <el-tag v-else type="primary" size="small" round>❄️ 선선함</el-tag>
+      <el-tag v-if="city.humidity >= 70" type="success" size="small" round>💦 습함</el-tag>
+      <el-tag v-if="city.windSpeed >= 4" type="warning" size="small" round>🌬️ 바람 강함</el-tag>
+    </div>
   </el-card>
 </template>
 
 <style scoped>
 .weather-card {
-  margin-bottom: 10px;
   cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.weather-card:hover {
+  transform: translateY(-2px);
 }
 .weather-card.selected {
-  border-color: #42b883;
-  background: #f0faf5;
+  border-color: rgba(14, 165, 233, 0.6);
+  background: linear-gradient(135deg, rgba(224, 242, 254, 0.9), rgba(255, 255, 255, 0.95));
 }
 .card-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-.card-head h4 {
-  font-size: 1.05rem;
-  font-weight: 600;
-}
-.temp {
-  font-size: 0.95rem;
-  color: #495057;
+  flex-wrap: wrap;
+  gap: 8px 10px;
 }
 .btn-favorite {
-  font-size: 18px;
-  color: #ced4da;
+  font-size: 20px;
+  color: #cbd5e1;
 }
 .btn-favorite.active {
-  color: #f1c40f;
+  color: #f59e0b;
 }
-.btn-detail {
+.weather-icon {
+  width: 48px;
+  height: 48px;
+  margin: -8px 0;
+}
+.card-title h4 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.status {
+  font-size: 13px;
+  color: var(--ink-500);
+}
+.temp {
   margin-left: auto;
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--ink-900);
 }
-.el-tag {
-  margin-top: 6px;
-  margin-right: 4px;
+.temp small {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink-500);
+  margin-left: 2px;
+}
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }
 </style>

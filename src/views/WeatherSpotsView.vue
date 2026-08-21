@@ -3,6 +3,9 @@ import { ref, onMounted } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { useConfigStore } from '@/stores/configStore'
+import { cityList } from '@/stores/weatherStore'
+import { applySkyTheme } from '@/composables/useSkyTheme'
+import noImage from '@/assets/no-image.svg'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,42 +16,36 @@ const BASE_URL = 'https://api.openweathermap.org/data/2.5'
 const TOUR_API_KEY = import.meta.env.VITE_TOUR_API_KEY
 const TOUR_BASE_URL = 'https://apis.data.go.kr/B551011/KorService2'
 
-const cityMapping = {
-  city_01: { name: '서울', spots: ['경복궁', '북촌한옥마을', '청계천', '덕수궁', '남산서울타워'] },
-  city_02: {
-    name: '수원',
-    spots: ['화성행궁', '광교호수공원', '행궁동 벽화마을', '방화수류정', '장안문'],
-  },
-  city_03: {
-    name: '부산',
-    spots: ['해운대해수욕장', '광안리해수욕장', '감천문화마을', '용두산공원', '태종대'],
-  },
-  city_04: {
-    name: '광주',
-    spots: ['무등산국립공원', '광주호 호수생태원', '5·18 민주광장', '펭귄마을', '사직공원'],
-  },
-  city_05: {
-    name: '울산',
-    spots: ['대왕암공원', '태화강 국가정원', '간절곶', '울산대공원', '장생포 고래문화마을'],
-  },
-}
-
-const cityName = ref('')
+const basePoint = ref(null)
+const baseWeather = ref(null)
 const spotList = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-const fetchSpots = async (targetCity) => {
+const fetchSpots = async () => {
   isLoading.value = true
   errorMessage.value = ''
   try {
-    const tourRequests = targetCity.spots.map((keyword) =>
-      axios.get(
-        `${TOUR_BASE_URL}/searchKeyword2?serviceKey=${TOUR_API_KEY}&MobileOS=ETC&MobileApp=SkalaWeather&_type=json&keyword=${keyword}&contentTypeId=12&arrange=A&numOfRows=1&pageNo=1`,
-      ),
+    const weatherUrl = basePoint.value.english
+      ? `${BASE_URL}/weather?q=${basePoint.value.english}&appid=${API_KEY}&units=metric&lang=kr`
+      : `${BASE_URL}/weather?lat=${basePoint.value.lat}&lon=${basePoint.value.lon}&appid=${API_KEY}&units=metric&lang=kr`
+    const weatherResponse = await axios.get(weatherUrl)
+    const raw = weatherResponse.data
+    basePoint.value.lat = raw.coord.lat
+    basePoint.value.lon = raw.coord.lon
+    baseWeather.value = {
+      temp: Math.round(raw.main.temp),
+      status: raw.weather[0].description,
+      main: raw.weather[0].main,
+      icon: raw.weather[0].icon,
+    }
+    applySkyTheme(baseWeather.value.main, baseWeather.value.temp)
+
+    const tourResponse = await axios.get(
+      `${TOUR_BASE_URL}/locationBasedList2?serviceKey=${TOUR_API_KEY}&MobileOS=ETC&MobileApp=SkalaWeather&_type=json&mapX=${basePoint.value.lon}&mapY=${basePoint.value.lat}&radius=10000&contentTypeId=12&arrange=E&numOfRows=20&pageNo=1`,
     )
-    const tourResponses = await axios.all(tourRequests)
-    const items = tourResponses.map((response) => response.data.response.body.items.item[0])
+    const body = tourResponse.data.response.body
+    const items = body.items && body.items.item ? body.items.item : []
 
     const weatherRequests = items.map((item) =>
       axios.get(
@@ -62,8 +59,10 @@ const fetchSpots = async (targetCity) => {
       name: item.title,
       address: item.addr1,
       image: item.firstimage,
+      distance: Math.round(item.dist / 100) / 10,
       temp: Math.round(weatherResponses[index].data.main.temp),
       status: weatherResponses[index].data.weather[0].description,
+      icon: weatherResponses[index].data.weather[0].icon,
     }))
   } catch (error) {
     console.error('관광지 API 호출 실패:', error)
@@ -74,10 +73,19 @@ const fetchSpots = async (targetCity) => {
 }
 
 onMounted(() => {
-  const targetCity = cityMapping[route.params.cityId]
+  if (route.query.lat && route.query.lon) {
+    basePoint.value = {
+      name: route.query.name || '지도에서 고른 위치',
+      lat: Number(route.query.lat),
+      lon: Number(route.query.lon),
+    }
+    fetchSpots()
+    return
+  }
+  const targetCity = cityList.find((city) => city.id === route.params.cityId)
   if (targetCity) {
-    cityName.value = targetCity.name
-    fetchSpots(targetCity)
+    basePoint.value = { name: targetCity.name, english: targetCity.english }
+    fetchSpots()
   }
 })
 
@@ -88,8 +96,12 @@ const convertTemp = (rawTemp) => {
   return rawTemp
 }
 
-const goDetail = () => {
-  router.push('/weather/' + route.params.cityId)
+const goBack = () => {
+  router.back()
+}
+
+const goSpotDetail = (spot) => {
+  router.push('/spot/' + spot.id)
 }
 </script>
 
@@ -99,35 +111,67 @@ const goDetail = () => {
 
     <div v-loading="isLoading" class="spot-area">
       <el-alert v-if="errorMessage" type="error" :title="errorMessage" :closable="false" />
-      <template v-else-if="cityName">
-        <p class="subtitle">{{ cityName }} 주요 관광지의 현재 날씨입니다.</p>
-        <el-card v-for="spot in spotList" :key="spot.id" class="spot-card" shadow="hover">
+      <template v-else-if="basePoint">
+        <div v-if="baseWeather" class="base-card fade-up">
+          <img
+            :src="`https://openweathermap.org/img/wn/${baseWeather.icon}@2x.png`"
+            :alt="baseWeather.status"
+            class="base-icon"
+          />
+          <div>
+            <p class="base-name">📍 {{ basePoint.name }} 기준</p>
+            <strong
+              >{{ convertTemp(baseWeather.temp) }}{{ configStore.unitSymbol }}
+              {{ baseWeather.status }}</strong
+            >
+            <p class="subtitle">
+              반경 10km 관광지 {{ spotList.length }}곳 · 관광지마다 그 자리의 날씨를 보여줘요
+            </p>
+          </div>
+        </div>
+        <el-card v-for="spot in spotList" :key="spot.id" class="spot-card fade-up" shadow="hover">
           <div class="spot-body">
             <el-image
-              v-if="spot.image"
-              :src="spot.image"
+              :src="spot.image || noImage"
               :alt="spot.name"
               class="spot-image"
               fit="cover"
             />
             <div class="spot-info">
               <h3>{{ spot.name }}</h3>
-              <p class="address">📍 {{ spot.address }}</p>
-              <p class="weather">
-                🌡️ {{ convertTemp(spot.temp) }}{{ configStore.unitSymbol }} · {{ spot.status }}
-              </p>
+              <p class="address">{{ spot.address }}</p>
+              <p class="distance">기준점에서 {{ spot.distance }}km</p>
+              <el-button
+                size="small"
+                type="primary"
+                plain
+                round
+                class="btn-detail"
+                @click="goSpotDetail(spot)"
+              >
+                상세보기
+              </el-button>
+            </div>
+            <div class="spot-weather">
+              <img :src="`https://openweathermap.org/img/wn/${spot.icon}.png`" :alt="spot.status" />
+              <strong>{{ convertTemp(spot.temp) }}{{ configStore.unitSymbol }}</strong>
+              <span>{{ spot.status }}</span>
             </div>
           </div>
         </el-card>
+        <el-empty
+          v-if="!isLoading && spotList.length === 0"
+          description="반경 10km 안에서 관광지를 찾지 못했어요."
+        />
       </template>
       <el-empty
         v-else-if="!isLoading"
-        :description="`😭 ${route.params.cityId}에 해당하는 도시 정보가 없습니다.`"
+        description="😭 기준 위치 정보가 없습니다. 지도나 상세 페이지에서 들어와 주세요."
       />
     </div>
 
     <div class="actions">
-      <el-button type="primary" @click="goDetail">← 상세 정보로 돌아가기</el-button>
+      <el-button type="primary" @click="goBack">← 이전으로</el-button>
       <RouterLink to="/" class="link-home">메인 대시보드</RouterLink>
     </div>
   </div>
@@ -136,62 +180,111 @@ const goDetail = () => {
 <style scoped>
 .spots-wrapper {
   width: 100%;
-  max-width: 600px;
+  max-width: 680px;
   margin: 0 auto;
 }
 .spots-wrapper h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.4rem;
+  font-weight: 800;
   margin-bottom: 16px;
 }
 .spot-area {
   min-height: 80px;
 }
+.base-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  border-radius: 26px 26px 26px 8px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+}
+.base-icon {
+  width: 64px;
+  height: 64px;
+}
+.base-name {
+  font-size: 13px;
+  color: var(--ink-500);
+}
+.base-card strong {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
 .subtitle {
-  color: #495057;
-  margin-bottom: 12px;
+  color: var(--ink-500);
+  font-size: 13px;
 }
 .spot-card {
   margin-bottom: 10px;
 }
 .spot-body {
   display: flex;
+  align-items: center;
   gap: 14px;
 }
 .spot-image {
-  width: 96px;
-  height: 96px;
-  border-radius: 6px;
+  width: 84px;
+  height: 84px;
+  border-radius: 18px;
+  flex-shrink: 0;
 }
 .spot-info {
   flex: 1;
+  min-width: 0;
 }
 .spot-info h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 .address {
-  font-size: 14px;
-  color: #868e96;
-  margin-top: 6px;
-}
-.weather {
+  font-size: 13px;
+  color: var(--ink-500);
   margin-top: 4px;
+}
+.distance {
+  margin-top: 4px;
+  font-size: 13px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--sky-600);
+}
+.btn-detail {
+  margin-top: 8px;
+}
+.spot-weather {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 72px;
+}
+.spot-weather img {
+  width: 40px;
+  height: 40px;
+  margin-bottom: -6px;
+}
+.spot-weather strong {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+.spot-weather span {
+  font-size: 12px;
+  color: var(--ink-500);
 }
 .actions {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 15px;
+  margin-top: 16px;
 }
 .link-home {
   font-size: 14px;
-  color: #7f8c8d;
+  color: var(--ink-500);
   text-decoration: none;
 }
 .link-home:hover {
-  color: #2c3e50;
+  color: var(--sky-600);
 }
 </style>

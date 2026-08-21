@@ -1,8 +1,136 @@
 @import './base.css';
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
+:root {
+  --sky-500: #0ea5e9;
+  --sky-600: #0284c7;
+  --ink-900: #0f172a;
+  --ink-700: #334155;
+  --ink-500: #64748b;
+  --glass: rgba(255, 255, 255, 0.62);
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --bg-a: #bae6fd;
+  --bg-b: #ccfbf1;
+  --bg-c: #f0f9ff;
+  --el-color-primary: #0ea5e9;
+  --el-color-primary-light-3: #5bc0f0;
+  --el-color-primary-light-5: #86d2f4;
+  --el-color-primary-light-7: #b6e4f9;
+  --el-color-primary-light-8: #cfedfb;
+  --el-color-primary-light-9: #e7f6fd;
+  --el-color-primary-dark-2: #0284c7;
+  --el-border-radius-base: 12px;
+  --el-font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+body[data-weather='clear'] {
+  --bg-a: #7dd3fc;
+  --bg-b: #fde68a;
+  --bg-c: #e0f2fe;
+}
+body[data-weather='clouds'] {
+  --bg-a: #cbd5e1;
+  --bg-b: #bae6fd;
+  --bg-c: #f1f5f9;
+}
+body[data-weather='rain'] {
+  --bg-a: #93c5fd;
+  --bg-b: #a5b4fc;
+  --bg-c: #e0e7ff;
+}
+body[data-weather='snow'] {
+  --bg-a: #e0f2fe;
+  --bg-b: #e2e8f0;
+  --bg-c: #f8fafc;
+}
+body[data-weather='hot'] {
+  --bg-a: #fdba74;
+  --bg-b: #fda4af;
+  --bg-c: #fff7ed;
+}
+
+body {
+  min-height: 100vh;
+  font-family:
+    'Pretendard',
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    sans-serif;
+  background: var(--bg-c);
+  color: var(--ink-900);
+  letter-spacing: -0.01em;
+  transition: background 0.8s ease;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  background:
+    radial-gradient(40% 35% at 20% 20%, var(--bg-a) 0%, transparent 70%),
+    radial-gradient(35% 30% at 80% 15%, var(--bg-b) 0%, transparent 70%),
+    radial-gradient(45% 40% at 60% 85%, var(--bg-a) 0%, transparent 70%);
+  filter: blur(20px);
+  opacity: 0.9;
+  animation: drift 22s ease-in-out infinite alternate;
+  transition: background 0.8s ease;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2%, 2%, 0) scale(1.06);
+  }
+}
 
 #app {
-  max-width: 1280px;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.25rem 1.25rem 4rem;
   font-weight: normal;
+}
+@media (max-width: 600px) {
+  #app {
+    padding: 0.75rem 0.75rem 3rem;
+  }
+  .el-card {
+    --el-card-padding: 14px;
+    --el-card-border-radius: 20px;
+  }
+}
+
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.02em;
+  color: var(--ink-900);
+}
+
+.el-card {
+  --el-card-border-radius: 26px;
+  --el-card-padding: 20px;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+}
+
+.fade-up {
+  animation: fadeUp 0.5s ease both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
