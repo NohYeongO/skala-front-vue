@@ -1,0 +1,147 @@
+.app-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 30px 40px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #2c3e50;
+}
+.app-container h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.app-container hr {
+  border: none;
+  border-top: 2px solid #e9ecef;
+  margin-bottom: 24px;
+}
+
+.weather-mockup {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.weather-mockup h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+.weather-mockup h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.search-box,
+.list-box {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+.search-box input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  outline: none;
+}
+.search-box input:focus {
+  border-color: #42b883;
+  box-shadow: 0 0 0 3px rgba(66, 184, 131, 0.2);
+}
+.search-box p {
+  margin-top: 8px;
+}
+.hint {
+  color: #868e96;
+  font-size: 14px;
+}
+.weather-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.weather-card:hover {
+  border-color: #42b883;
+}
+.weather-card.selected {
+  border-color: #42b883;
+  background: #f0faf5;
+}
+.card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.card-head h4 {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.temp {
+  font-size: 0.95rem;
+  color: #495057;
+}
+.detail-list {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0;
+  font-size: 14px;
+  color: #495057;
+}
+.detail-list li {
+  line-height: 1.7;
+}
+.label {
+  display: inline-block;
+  margin-top: 6px;
+  margin-right: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  color: #fff;
+}
+.hot {
+  background-color: #ff7675;
+}
+.cool {
+  background-color: #74b9ff;
+}
+.humid {
+  background-color: #00b894;
+}
+.windy {
+  background-color: #a29bfe;
+}
+.btn-detail {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: #333;
+  background-color: #f1f3f5;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.btn-detail:hover {
+  background-color: #e9ecef;
+}
+.status-bar {
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-weight: bold;
+  text-align: center;
+  padding: 10px;
+  border-radius: 6px;
+}
