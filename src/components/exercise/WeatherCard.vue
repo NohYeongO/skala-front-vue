@@ -26,8 +26,8 @@ const handleFavoriteClick = (cityId) => {
   emit('toggle-favorite', cityId)
 }
 
-const handleDetailClick = (cityName, status) => {
-  emit('click-detail', cityName, status)
+const handleDetailClick = (city) => {
+  emit('click-detail', city)
 }
 </script>
 
@@ -53,9 +53,7 @@ const handleDetailClick = (cityName, status) => {
     <span v-if="city.humidity >= 70" class="label humid">💦 습함 (70% 이상)</span>
     <span v-if="city.windSpeed >= 4" class="label windy">🌬️ 바람 강함 (4m/s 이상)</span>
 
-    <button class="btn-detail" @click.stop="handleDetailClick(city.name, city.status)">
-      상세보기
-    </button>
+    <button class="btn-detail" @click.stop="handleDetailClick(city)">상세보기</button>
   </div>
 </template>
 

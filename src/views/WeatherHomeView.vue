@@ -1,5 +1,11 @@
 <script setup>
 import { ref, computed, watch, watchEffect } from 'vue'
+import { useRouter } from 'vue-router'
+import BaseDashboardCard from '@/components/exercise/BaseDashboardCard.vue'
+import SearchBar from '@/components/exercise/SearchBar.vue'
+import WeatherCard from '@/components/exercise/WeatherCard.vue'
+
+const router = useRouter()
 
 const weatherList = ref([
   {
@@ -84,6 +90,15 @@ watch(
   { deep: true },
 )
 
+const updateQuery = (value) => {
+  searchQuery.value = value
+}
+
+const selectCity = (city) => {
+  selectedCityId.value = city.id
+  selectedCityInfo.value = `${city.name}이 선택되었습니다.`
+}
+
 const toggleFavorite = (cityId) => {
   const index = favoriteIds.value.findIndex((id) => id === cityId)
   if (index === -1) {
@@ -93,75 +108,35 @@ const toggleFavorite = (cityId) => {
   }
 }
 
-const selectCity = (city) => {
-  selectedCityId.value = city.id
-  selectedCityInfo.value = `${city.name}이 선택되었습니다.`
-}
-
-const showDetail = (cityName, status) => {
-  window.alert(`${cityName}의 현재 날씨는 [${status}] 상태입니다.`)
+const goDetail = (city) => {
+  router.push('/weather/' + city.id)
 }
 </script>
 
 <template>
   <div class="dashboard-wrapper">
-    <h2>⛅ 날씨 Composition</h2>
+    <h2>🌦️ 날씨 대시보드</h2>
 
-    <section class="search-box">
-      <h3>🔍 도시 검색</h3>
-      <input
-        type="text"
-        :value="searchQuery"
-        @input="(e) => (searchQuery = e.target.value)"
-        placeholder="도시 이름을 한글로 입력하세요 (예: 서울)"
-      />
-      <p v-if="searchQuery">
-        검색 중인 도시: <strong>{{ searchQuery }}</strong> ({{ filteredWeatherList.length }}건)
-      </p>
-      <p v-else class="hint">검색어가 없으면 전체 도시를 표시합니다.</p>
+    <BaseDashboardCard>
+      <SearchBar :query="searchQuery" @update-query="updateQuery" />
       <label class="favorite-filter">
         <input type="checkbox" v-model="showOnlyFavorites" />
         ⭐ 즐겨찾기만 보기 ({{ favoriteCount }}개)
       </label>
-    </section>
+    </BaseDashboardCard>
 
-    <section class="list-box">
+    <BaseDashboardCard>
       <h3>🏙️ 지역별 날씨 현황</h3>
-      <div
+      <WeatherCard
         v-for="city in filteredWeatherList"
         :key="city.id"
-        class="weather-card"
-        :class="{ selected: city.id === selectedCityId }"
-        @click="selectCity(city)"
-      >
-        <div class="card-head">
-          <button
-            class="btn-favorite"
-            :class="{ active: favoriteIds.includes(city.id) }"
-            @click.stop="toggleFavorite(city.id)"
-          >
-            ★
-          </button>
-          <h4>{{ city.name }}</h4>
-          <span class="temp">{{ city.temp }}°C</span>
-        </div>
-        <p>현재 날씨: {{ city.status }}</p>
-
-        <ul class="detail-list">
-          <li>🌡️ 체감온도: {{ city.feelsLike }}°C</li>
-          <li>💧 습도: {{ city.humidity }}%</li>
-          <li>💨 풍속: {{ city.windSpeed }}m/s</li>
-        </ul>
-
-        <span v-if="city.temp >= 25" class="label hot">🔥 더움 (25도 이상)</span>
-        <span v-else class="label cool">❄️ 선선함 (25도 미만)</span>
-        <span v-if="city.humidity >= 70" class="label humid">💦 습함 (70% 이상)</span>
-        <span v-if="city.windSpeed >= 4" class="label windy">🌬️ 바람 강함 (4m/s 이상)</span>
-
-        <button class="btn-detail" @click.stop="showDetail(city.name, city.status)">
-          상세보기
-        </button>
-      </div>
+        :city="city"
+        :is-selected="city.id === selectedCityId"
+        :is-favorite="favoriteIds.includes(city.id)"
+        @select-card="selectCity"
+        @click-detail="goDetail"
+        @toggle-favorite="toggleFavorite"
+      />
 
       <p v-if="showOnlyFavorites && favoriteCount === 0" class="no-result">
         ⭐ 즐겨찾기한 도시가 없습니다. 카드의 별을 눌러 추가해 보세요.
@@ -169,8 +144,49 @@ const showDetail = (cityName, status) => {
       <p v-else-if="filteredWeatherList.length === 0" class="no-result">
         😭 검색 결과와 일치하는 도시가 없습니다.
       </p>
-    </section>
+    </BaseDashboardCard>
 
     <div class="status-bar">{{ selectedCityInfo }}</div>
   </div>
 </template>
+
+<style scoped>
+.dashboard-wrapper {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.dashboard-wrapper h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+.dashboard-wrapper h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.favorite-filter {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.favorite-filter input {
+  width: auto;
+  margin-right: 4px;
+}
+.no-result {
+  text-align: center;
+  color: #e74c3c;
+  padding: 10px 0;
+}
+.status-bar {
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-weight: bold;
+  text-align: center;
+  padding: 10px;
+  border-radius: 6px;
+}
+</style>

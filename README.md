@@ -179,15 +179,11 @@ watch(
 ```
 
 ```html
-<label
-  ><input type="checkbox" v-model="showOnlyFavorites" /> ⭐ 즐겨찾기만 보기 ({{ favoriteCount
-  }}개)</label
->
-<button
-  class="btn-favorite"
-  :class="{ active: favoriteIds.includes(city.id) }"
-  @click.stop="toggleFavorite(city.id)"
->
+<label>
+  <input type="checkbox" v-model="showOnlyFavorites" />
+  ⭐ 즐겨찾기만 보기 ({{ favoriteCount }}개)
+</label>
+<button class="btn-favorite" :class="{ active: favoriteIds.includes(city.id) }" @click.stop="toggleFavorite(city.id)">
   ★
 </button>
 ```
@@ -259,7 +255,7 @@ const handleInput = (e) => {
 
 **4. WeatherCard.vue**
 
-도시 객체 `city`(required)와 선택 여부 `isSelected` 즐겨찾기 여부 `isFavorite`를 props로 받아 표시만 담당합니다. 카드 클릭은 `select-card`로 도시 객체를 상세보기는 `click-detail`로 도시명과 상태를 ★ 버튼은 `toggle-favorite`로 id를 `@click.stop`과 함께 부모에게 보냅니다.
+도시 객체 `city`(required)와 선택 여부 `isSelected` 즐겨찾기 여부 `isFavorite`를 props로 받아 표시만 담당합니다. 카드 클릭은 `select-card`로 상세보기는 `click-detail`로 도시 객체를 ★ 버튼은 `toggle-favorite`로 id를 `@click.stop`과 함께 부모에게 보냅니다.
 
 ```js
 defineProps({
@@ -268,14 +264,19 @@ defineProps({
   isFavorite: { type: Boolean, default: false },
 })
 const emit = defineEmits(['select-card', 'click-detail', 'toggle-favorite'])
+
+const handleCardClick = (city) => {
+  emit('select-card', city)
+}
+const handleDetailClick = (city) => {
+  emit('click-detail', city)
+}
 ```
 
 ```html
-<div class="weather-card" :class="{ selected: isSelected }" @click="emit('select-card', city)">
-  <button class="btn-favorite" @click.stop="emit('toggle-favorite', city.id)">★</button>
-  <button class="btn-detail" @click.stop="emit('click-detail', city.name, city.status)">
-    상세보기
-  </button>
+<div class="weather-card" :class="{ selected: isSelected }" @click="handleCardClick(city)">
+  <button class="btn-favorite" @click.stop="handleFavoriteClick(city.id)">★</button>
+  <button class="btn-detail" @click.stop="handleDetailClick(city)">상세보기</button>
 </div>
 ```
 
@@ -290,10 +291,10 @@ SearchBar와 WeatherCard는 BaseDashboardCard의 slot 안에 놓이지만 Weathe
 ```html
 <BaseDashboardCard>
   <SearchBar :query="searchQuery" @update-query="updateQuery" />
-  <label
-    ><input type="checkbox" v-model="showOnlyFavorites" /> ⭐ 즐겨찾기만 보기 ({{ favoriteCount
-    }}개)</label
-  >
+  <label>
+    <input type="checkbox" v-model="showOnlyFavorites" />
+    ⭐ 즐겨찾기만 보기 ({{ favoriteCount }}개)
+  </label>
 </BaseDashboardCard>
 ```
 
@@ -317,4 +318,141 @@ WeatherCard에서는 받은 `city`를 그대로 내려줍니다.
 
 ```html
 <WeatherDetailList :city="city" />
+```
+
+## 과제 4. Weather Router
+
+### 요구사항
+
+1. Vue Router 설정 - 라우터 지연 로딩과 Catch-all Route를 적용한다.
+2. App.vue - Navigation Bar(RouterLink)를 추가하고 메인 콘텐츠 영역(RouterView)을 배치한다.
+3. WeatherHomeView.vue - WeatherParent를 대체한다. 상세보기 버튼 클릭 시 `window.alert()`를 제거하고 `router.push('/weather/' + id)`로 Programmatic Navigation 처리한다.
+4. WeatherDetailView.vue - 지역별 상세 기상관측 정보를 보여준다. 도시 코드에 해당하는 Mock Data를 임시로 활용하고 동적 경로의 cityId를 기반으로 Mount 시점에 도시 객체를 선택한다.
+5. WeatherAboutView.vue - 적당한 내용을 작성하고 메인 대시보드로 돌아가기를 작성한다.
+6. 상기 정의된 view 이외에 본인의 추가 view를 작성하고 Routing한다.
+
+### 구현 내용
+
+작성 파일: `src/router/index.js` `src/App.vue` `src/views/WeatherHomeView.vue` `WeatherDetailView.vue` `WeatherAboutView.vue` `NotFoundView.vue` `WeatherSpotsView.vue`
+
+과제 4부터 과제 설명에 나오는 프로젝트 폴더 트리에 맞춰 정리했습니다. 이전 과제 코드는 각 과제 브랜치에 남아 있습니다.
+
+**1. Vue Router 설정**
+
+`/`는 첫 화면이라 정적 import하고 나머지 View는 `component: () => import(...)` 동적 import로 지연 로딩했습니다. 상세 페이지는 `/weather/:cityId` 동적 세그먼트로 정의하고 마지막에 `/:pathMatch(.*)*` Catch-all Route를 두어 정의되지 않은 주소는 NotFoundView로 보냅니다.
+
+```js
+routes: [
+  { path: '/', name: 'WeatherHome', component: WeatherHomeView },
+  {
+    path: '/about',
+    name: 'WeatherAbout',
+    component: () => import('../views/WeatherAboutView.vue'),
+  },
+  {
+    path: '/weather/:cityId',
+    name: 'WeatherDetail',
+    component: () => import('../views/WeatherDetailView.vue'),
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('../views/NotFoundView.vue'),
+  },
+]
+```
+
+**2. App.vue**
+
+`RouterLink`로 날씨 대시보드(`/`)와 서비스 소개(`/about`) 링크를 가진 Navigation Bar를 만들고 아래 `<main>`에 `RouterView`를 배치했습니다. 내비게이션 스타일은 `<style scoped>`로 App.vue 안에 두었습니다.
+
+```html
+<nav class="navigation-bar">
+  <RouterLink to="/" class="nav-item">🌦️ 날씨 대시보드</RouterLink>
+  <span class="divider">|</span>
+  <RouterLink to="/about" class="nav-item">ℹ️ 서비스 소개</RouterLink>
+</nav>
+<main>
+  <RouterView />
+</main>
+```
+
+**3. WeatherHomeView.vue**
+
+WeatherParent의 반응형 데이터 computed watch 자식 조립을 그대로 옮기고 `showDetail`의 `window.alert`만 `useRouter`의 `router.push`로 바꿨습니다. 이를 위해 WeatherCard의 `click-detail` 이벤트가 도시 객체를 보내도록 해 id를 받을 수 있게 했습니다.
+
+```js
+const router = useRouter()
+
+const goDetail = (city) => {
+  router.push('/weather/' + city.id)
+}
+```
+
+```html
+<WeatherCard ... @click-detail="goDetail" />
+```
+
+**4. WeatherDetailView.vue**
+
+도시 코드를 key로 하는 `mockDetails` 객체를 두고 `useRoute`의 `route.params.cityId`를 `onMounted` 시점에 읽어 해당 도시 객체를 `cityData`에 담았습니다. 없는 코드면 `v-else`로 안내하고 체감온도 습도 풍속은 과제 3의 `WeatherDetailList`를 재사용해 표시합니다. 돌아가기 버튼은 `router.push('/')`입니다.
+
+```js
+const route = useRoute()
+const cityData = ref(null)
+
+onMounted(() => {
+  const cityId = route.params.cityId
+  if (mockDetails[cityId]) {
+    cityData.value = mockDetails[cityId]
+  }
+})
+```
+
+```html
+<div v-if="cityData" class="detail-card">
+  <h3>📍 {{ cityData.name }}</h3>
+  <WeatherDetailList :city="cityData" />
+</div>
+<div v-else class="detail-card">
+  <p class="no-data">😭 "{{ route.params.cityId }}"에 해당하는 도시 정보가 없습니다.</p>
+</div>
+```
+
+**5. WeatherAboutView.vue**
+
+서비스 소개 문구와 기능 목록을 적고 `RouterLink`로 메인 대시보드로 돌아가기 링크를 두었습니다. NotFoundView도 같은 방식으로 돌아가기 링크를 가집니다.
+
+```html
+<RouterLink to="/" class="link-home">← 메인 대시보드로 돌아가기</RouterLink>
+```
+
+**6. 추가 View (WeatherSpotsView.vue - 관광지 날씨)**
+
+도시별 주요 관광지와 그 위치의 현재 날씨를 보여주는 View를 추가했습니다. 경로는 상세 페이지 아래에 붙는 `/weather/:cityId/spots`로 두어 중간에 동적 세그먼트가 오는 형태로 정의하고 Catch-all Route 앞에 지연 로딩으로 추가했습니다.
+
+```js
+{
+  path: '/weather/:cityId/spots',
+  name: 'WeatherSpots',
+  component: () => import('../views/WeatherSpotsView.vue'),
+}
+```
+
+도시 코드를 key로 하는 `mockSpots`(도시명과 관광지 배열: 이름 분류 주소 기온 상태)를 두고 상세 페이지와 같은 방식으로 `onMounted` 시점에 `route.params.cityId`로 선택해 `v-for`로 관광지 카드를 출력합니다. 없는 코드면 `v-else`로 안내합니다.
+
+```html
+<div v-for="spot in spotData.spots" :key="spot.id" class="spot-card">
+  <h3>{{ spot.name }}</h3>
+  <p class="address">📍 {{ spot.address }}</p>
+  <p class="weather">🌡️ {{ spot.temp }}°C · {{ spot.status }}</p>
+</div>
+```
+
+진입은 WeatherDetailView의 `🏞️ 관광지 날씨 보기` 버튼에서 `router.push`로 하고 관광지 페이지에는 상세로 돌아가는 버튼(`router.push`)과 메인 대시보드 `RouterLink`를 두었습니다.
+
+```js
+const goSpots = () => {
+  router.push('/weather/' + route.params.cityId + '/spots')
+}
 ```
