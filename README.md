@@ -14,28 +14,28 @@
 
 ## 과제별 정리
 
-[과제 1 Weather Mockup](https://github.com/NohYeongO/skala-front-vue/pull/1)
+[과제 1 Weather Mockup](https://github.com/NohYeongO/skala-vue/pull/1)
 v-for와 v-if로 날씨 카드를 그리고 :value와 @input으로 한글 검색어를 실시간 반영했습니다. 카드 클릭 상태바와 @click.stop 상세보기를 만들고 광주와 울산 그리고 체감온도 습도 풍속 필드를 추가했습니다.
 
-[과제 2 Weather Composition](https://github.com/NohYeongO/skala-front-vue/pull/2)
+[과제 2 Weather Composition](https://github.com/NohYeongO/skala-vue/pull/2)
 검색 필터를 computed로 만들고 watch와 watchEffect로 상태 변화를 콘솔에 남겼습니다. 즐겨찾기 상태와 favoriteCount computed 그리고 deep watch를 직접 추가했습니다.
 
-[과제 3 Weather Component](https://github.com/NohYeongO/skala-front-vue/pull/3)
+[과제 3 Weather Component](https://github.com/NohYeongO/skala-vue/pull/3)
 기능 변경 없이 WeatherParent BaseDashboardCard SearchBar WeatherCard로 나누고 props와 emits로 연결했습니다. 체감온도 습도 풍속 목록은 WeatherDetailList로 한 번 더 분리했습니다.
 
-[과제 4 Weather Router](https://github.com/NohYeongO/skala-front-vue/pull/4)
+[과제 4 Weather Router](https://github.com/NohYeongO/skala-vue/pull/4)
 지연 로딩 라우트와 Catch all을 설정하고 대시보드 상세 소개 관광지 날씨 페이지로 나눴습니다. 이 과제부터 교재 폴더 트리에 맞춰 정리했습니다.
 
-[과제 5 Weather Store](https://github.com/NohYeongO/skala-front-vue/pull/5)
+[과제 5 Weather Store](https://github.com/NohYeongO/skala-vue/pull/5)
 configStore로 섭씨 화씨 단위를 전역에서 바꾸고 즐겨찾기는 favoriteStore로 옮겨 상세 페이지에서도 토글되게 했습니다.
 
-[과제 6 Weather Axios](https://github.com/NohYeongO/skala-front-vue/pull/6)
+[과제 6 Weather Axios](https://github.com/NohYeongO/skala-vue/pull/6)
 OpenWeatherMap으로 실제 날씨와 대기질을 받고 한국관광공사 TourAPI로 관광지를 받아 관광지마다 그 자리의 날씨를 붙였습니다. 키는 .env 환경 변수로 관리합니다.
 
-[과제 7 Weather UI Library](https://github.com/NohYeongO/skala-front-vue/pull/7)
+[과제 7 Weather UI Library](https://github.com/NohYeongO/skala-vue/pull/7)
 Element Plus를 등록하고 화면 표시 부분을 el 컴포넌트로 바꿨습니다. 로직은 그대로 두었습니다.
 
-[과제 8과 배포 최종 구현](https://github.com/NohYeongO/skala-front-vue/pull/8)
+[과제 8과 배포 최종 구현](https://github.com/NohYeongO/skala-vue/pull/8)
 Leaflet 지도에서 아무 곳이나 눌러 그 자리의 날씨와 근처 관광지를 보고 날씨에 맞는 추천 코스를 받아 관광지 카드로 저장하는 흐름을 만들었습니다. 전국 도시 검색과 날씨별 배경 효과 그리고 과제 기록 페이지를 넣었고 GitHub Pages에 커스텀 도메인으로 배포했습니다.
 
 ## 평가 항목으로 보기
