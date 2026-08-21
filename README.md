@@ -702,3 +702,83 @@ const weatherResponses = await axios.all(weatherRequests)
   🌡️ {{ convertTemp(spot.temp) }}{{ configStore.unitSymbol }} · {{ spot.status }}
 </p>
 ```
+
+## 과제 7. Weather UI Library
+
+### 요구사항
+
+외부 UI Library를 선정하고 3일차 과제(Weather Axios)에 자유롭게 적용한다.
+
+### 구현 내용
+
+선정: **Element Plus** - 교재에서 설치부터 컴포넌트 표까지 다룬 라이브러리이고 데이터 중심 대시보드에 맞아 선택했습니다. 기존 로직(스토어 라우터 API 호출)은 그대로 두고 화면 표시 부분만 Element Plus 컴포넌트로 바꿨습니다.
+
+수정 파일: `main.js` `components/exercise/BaseDashboardCard.vue` `SearchBar.vue` `UnitToggler.vue` `WeatherCard.vue` `WeatherDetailList.vue` `views/WeatherHomeView.vue` `WeatherDetailView.vue` `WeatherSpotsView.vue` `WeatherAboutView.vue` `NotFoundView.vue`
+
+**설치와 등록**
+
+`npm install element-plus` 후 `main.js`에서 모듈과 CSS를 불러와 `app.use`로 등록했습니다.
+
+```js
+import ElementPlus from 'element-plus'
+import 'element-plus/dist/index.css'
+
+app.use(ElementPlus)
+```
+
+**적용한 컴포넌트**
+
+- 검색창은 `el-input` 즐겨찾기만 보기는 `el-checkbox`로 바꿨습니다.
+- 단위 표시와 단위 변경 버튼은 `el-tag` `el-button`으로 바꿨습니다.
+- 검색박스 날씨 카드 상세 카드 관광지 카드는 `el-card`로 감쌌습니다.
+- 더움 습함 바람 라벨과 대기질 등급은 `el-tag`의 `type`으로 색을 줬습니다.
+- 체감온도 습도 풍속 목록은 `el-descriptions` 관광지 사진은 `el-image`를 썼습니다.
+- 로딩은 `v-loading` 실패 문구와 상태바는 `el-alert` 결과 없음은 `el-empty`로 처리했습니다.
+- 404 페이지는 `el-result`로 바꿨습니다.
+
+SearchBar는 부모 props를 받아 표시만 하므로 `v-model` 대신 `:model-value`와 `@input`으로 값을 받고 부모로 올립니다. `el-input`의 `input` 이벤트는 입력값 자체를 넘겨주므로 핸들러가 값을 그대로 emit합니다.
+
+```html
+<el-input
+  :model-value="query"
+  placeholder="도시 이름을 한글로 입력하세요 (예: 서울)"
+  clearable
+  @input="handleInput"
+/>
+```
+
+```js
+const handleInput = (value) => {
+  emit('update-query', value)
+}
+```
+
+로딩은 목록 영역에 `v-loading`을 걸고 실패와 결과 없음은 `el-alert` `el-empty`로 바꿨습니다.
+
+```html
+<div v-loading="isLoading" class="card-list">
+  <el-alert v-if="errorMessage" type="error" :title="errorMessage" :closable="false" />
+  <template v-else>
+    <WeatherCard v-for="city in filteredWeatherList" ... />
+    <el-empty
+      v-if="!isLoading && filteredWeatherList.length === 0"
+      description="😭 검색 결과와 일치하는 도시가 없습니다."
+    />
+  </template>
+</div>
+```
+
+라벨은 `el-tag`의 `type`으로 색을 정합니다. 대기질은 등급별 type 배열을 두고 바인딩했습니다.
+
+```html
+<el-tag v-if="city.temp >= 25" type="danger" size="small">🔥 더움 (25도 이상)</el-tag>
+<el-tag v-else type="primary" size="small">❄️ 선선함 (25도 미만)</el-tag>
+```
+
+```js
+const aqiTypes = ['', 'success', 'success', 'warning', 'danger', 'danger']
+```
+
+```html
+<el-tag :type="aqiTypes[airData.aqi]" size="small">{{ aqiLabels[airData.aqi] }}</el-tag>
+```

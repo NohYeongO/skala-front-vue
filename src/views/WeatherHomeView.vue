@@ -106,38 +106,40 @@ const goDetail = (city) => {
 
     <BaseDashboardCard>
       <SearchBar :query="searchQuery" @update-query="updateQuery" />
-      <label class="favorite-filter">
-        <input type="checkbox" v-model="showOnlyFavorites" />
+      <el-checkbox v-model="showOnlyFavorites" class="favorite-filter">
         ⭐ 즐겨찾기만 보기 ({{ favoriteStore.favoriteCount }}개)
-      </label>
+      </el-checkbox>
     </BaseDashboardCard>
 
     <BaseDashboardCard>
       <h3>🏙️ 지역별 날씨 현황</h3>
-      <p v-if="isLoading" class="loading">⏳ 실시간 날씨 데이터를 불러오는 중...</p>
-      <p v-else-if="errorMessage" class="no-result">{{ errorMessage }}</p>
-      <template v-else>
-        <WeatherCard
-          v-for="city in filteredWeatherList"
-          :key="city.id"
-          :city="city"
-          :is-selected="city.id === selectedCityId"
-          :is-favorite="favoriteStore.favoriteIds.includes(city.id)"
-          @select-card="selectCity"
-          @click-detail="goDetail"
-          @toggle-favorite="favoriteStore.toggleFavorite"
-        />
+      <div v-loading="isLoading" class="card-list">
+        <el-alert v-if="errorMessage" type="error" :title="errorMessage" :closable="false" />
+        <template v-else>
+          <WeatherCard
+            v-for="city in filteredWeatherList"
+            :key="city.id"
+            :city="city"
+            :is-selected="city.id === selectedCityId"
+            :is-favorite="favoriteStore.favoriteIds.includes(city.id)"
+            @select-card="selectCity"
+            @click-detail="goDetail"
+            @toggle-favorite="favoriteStore.toggleFavorite"
+          />
 
-        <p v-if="showOnlyFavorites && favoriteStore.favoriteCount === 0" class="no-result">
-          ⭐ 즐겨찾기한 도시가 없습니다. 카드의 별을 눌러 추가해 보세요.
-        </p>
-        <p v-else-if="filteredWeatherList.length === 0" class="no-result">
-          😭 검색 결과와 일치하는 도시가 없습니다.
-        </p>
-      </template>
+          <el-empty
+            v-if="!isLoading && showOnlyFavorites && favoriteStore.favoriteCount === 0"
+            description="⭐ 즐겨찾기한 도시가 없습니다. 카드의 별을 눌러 추가해 보세요."
+          />
+          <el-empty
+            v-else-if="!isLoading && filteredWeatherList.length === 0"
+            description="😭 검색 결과와 일치하는 도시가 없습니다."
+          />
+        </template>
+      </div>
     </BaseDashboardCard>
 
-    <div class="status-bar">{{ selectedCityInfo }}</div>
+    <el-alert type="success" :title="selectedCityInfo" :closable="false" center />
   </div>
 </template>
 
@@ -158,31 +160,9 @@ const goDetail = (city) => {
   margin-bottom: 10px;
 }
 .favorite-filter {
-  display: inline-block;
   margin-top: 8px;
-  font-size: 14px;
-  cursor: pointer;
 }
-.favorite-filter input {
-  width: auto;
-  margin-right: 4px;
-}
-.loading {
-  text-align: center;
-  color: #495057;
-  padding: 10px 0;
-}
-.no-result {
-  text-align: center;
-  color: #e74c3c;
-  padding: 10px 0;
-}
-.status-bar {
-  background: #e8f5e9;
-  color: #2e7d32;
-  font-weight: bold;
-  text-align: center;
-  padding: 10px;
-  border-radius: 6px;
+.card-list {
+  min-height: 80px;
 }
 </style>

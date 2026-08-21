@@ -97,29 +97,37 @@ const goDetail = () => {
   <div class="spots-wrapper">
     <h2>🏞️ 관광지 날씨</h2>
 
-    <p v-if="isLoading" class="loading">⏳ 관광지와 날씨 데이터를 불러오는 중...</p>
-    <div v-else-if="errorMessage" class="spot-card">
-      <p class="no-data">{{ errorMessage }}</p>
-    </div>
-    <div v-else-if="cityName">
-      <p class="subtitle">{{ cityName }} 주요 관광지의 현재 날씨입니다.</p>
-      <div v-for="spot in spotList" :key="spot.id" class="spot-card">
-        <img v-if="spot.image" :src="spot.image" :alt="spot.name" class="spot-image" />
-        <div class="spot-body">
-          <h3>{{ spot.name }}</h3>
-          <p class="address">📍 {{ spot.address }}</p>
-          <p class="weather">
-            🌡️ {{ convertTemp(spot.temp) }}{{ configStore.unitSymbol }} · {{ spot.status }}
-          </p>
-        </div>
-      </div>
-    </div>
-    <div v-else class="spot-card">
-      <p class="no-data">😭 "{{ route.params.cityId }}"에 해당하는 도시 정보가 없습니다.</p>
+    <div v-loading="isLoading" class="spot-area">
+      <el-alert v-if="errorMessage" type="error" :title="errorMessage" :closable="false" />
+      <template v-else-if="cityName">
+        <p class="subtitle">{{ cityName }} 주요 관광지의 현재 날씨입니다.</p>
+        <el-card v-for="spot in spotList" :key="spot.id" class="spot-card" shadow="hover">
+          <div class="spot-body">
+            <el-image
+              v-if="spot.image"
+              :src="spot.image"
+              :alt="spot.name"
+              class="spot-image"
+              fit="cover"
+            />
+            <div class="spot-info">
+              <h3>{{ spot.name }}</h3>
+              <p class="address">📍 {{ spot.address }}</p>
+              <p class="weather">
+                🌡️ {{ convertTemp(spot.temp) }}{{ configStore.unitSymbol }} · {{ spot.status }}
+              </p>
+            </div>
+          </div>
+        </el-card>
+      </template>
+      <el-empty
+        v-else-if="!isLoading"
+        :description="`😭 ${route.params.cityId}에 해당하는 도시 정보가 없습니다.`"
+      />
     </div>
 
     <div class="actions">
-      <button class="btn-back" @click="goDetail">← 상세 정보로 돌아가기</button>
+      <el-button type="primary" @click="goDetail">← 상세 정보로 돌아가기</el-button>
       <RouterLink to="/" class="link-home">메인 대시보드</RouterLink>
     </div>
   </div>
@@ -136,34 +144,29 @@ const goDetail = () => {
   font-weight: 700;
   margin-bottom: 16px;
 }
+.spot-area {
+  min-height: 80px;
+}
 .subtitle {
   color: #495057;
   margin-bottom: 12px;
 }
-.loading {
-  text-align: center;
-  color: #495057;
-  padding: 10px 0;
-}
 .spot-card {
+  margin-bottom: 10px;
+}
+.spot-body {
   display: flex;
   gap: 14px;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 10px;
 }
 .spot-image {
   width: 96px;
   height: 96px;
-  object-fit: cover;
   border-radius: 6px;
 }
-.spot-body {
+.spot-info {
   flex: 1;
 }
-.spot-body h3 {
+.spot-info h3 {
   font-size: 1.1rem;
   font-weight: 600;
 }
@@ -177,28 +180,11 @@ const goDetail = () => {
   font-weight: 600;
   color: #2c3e50;
 }
-.no-data {
-  text-align: center;
-  color: #e74c3c;
-  width: 100%;
-}
 .actions {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-top: 15px;
-}
-.btn-back {
-  padding: 8px 14px;
-  font-size: 14px;
-  color: #fff;
-  background-color: #42b883;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.btn-back:hover {
-  background-color: #33a06f;
 }
 .link-home {
   font-size: 14px;
