@@ -102,11 +102,11 @@ const selectedCityInfo = ref('날씨 카드를 클릭하면 선택된 도시가 
 
 **2. 검색 도시 (computed)**
 
-검색어를 `trim`한 뒤 비어 있으면 원본 배열을 반환하고 아니면 `filter`와 `includes`로 도시명이 포함된 항목만 반환하는 `filteredWeatherList`를 `computed`로 만들었습니다.
+검색어가 비어 있으면 원본 배열을 반환하고 아니면 `filter`와 `includes`로 도시명이 포함된 항목만 반환하는 `filteredWeatherList`를 `computed`로 만들었습니다.
 
 ```js
 const filteredWeatherList = computed(() => {
-  const query = searchQuery.value.trim()
+  const query = searchQuery.value
   if (!query) {
     return weatherList.value
   }
@@ -193,3 +193,128 @@ watch(
 ```
 
 즐겨찾기만 보기를 켰는데 담긴 도시가 없으면 `v-if`로 별도 안내를 보여주고 그 외 0건은 기존 검색 결과 없음 안내를 `v-else-if`로 보여줍니다.
+
+## 과제 3. Weather Component
+
+### 요구사항
+
+기능 변경 없이 4개의 Component 파일로 분리한다.
+
+1. WeatherParent.vue - 모든 반응형 데이터를 유지한다.
+2. BaseDashboardCard.vue - 검색박스와 리스트박스의 디자인을 공통화하고 `<slot>`을 배치해 부모가 도시 검색과 날씨 현황을 주입한다.
+3. SearchBar.vue - 부모로부터 검색 도시 반응형 데이터를 전달받아 표시하고(props) 도시 검색 시 update-query 이벤트로 검색어를 부모에게 전달한다(emits).
+4. WeatherCard.vue - 선택된 도시 객체를 전달받아 표시하고(props) 카드 선택(select-card)과 상세보기(click-detail)를 부모에게 전달한다(emits).
+5. 각 컴포넌트로 분리하면서 해당되는 디자인은 `<style scoped>`로 각각 분리한다.
+6. [참고] Slot으로 전달되는 자식 컴포넌트(SearchBar WeatherCard)는 시각적으로는 BaseDashboardCard 내부에 있지만 스크립트적으로는 부모 스코프에서 컴파일되므로 WeatherParent에서 직접 바인딩/통신이 가능하다.
+7. 본인의 Mockup 부분에서 추가로 Component하거나 위의 Component를 더 분리하여 추가 Component를 만든다.
+
+### 구현 내용
+
+작성 파일: `src/components/exercise/WeatherParent.vue` `BaseDashboardCard.vue` `SearchBar.vue` `WeatherCard.vue` `WeatherDetailList.vue` (과제 2 코드를 기능 변경 없이 분리)
+
+**1. WeatherParent.vue**
+
+과제 2의 반응형 데이터(`weatherList` `searchQuery` `selectedCityInfo` `favoriteIds` 등)와 computed watch 함수를 전부 부모에 남기고 자식 컴포넌트를 import해 조립했습니다. 자식이 올려보내는 이벤트는 부모 함수로 받아 부모 데이터만 바꿉니다.
+
+```html
+<SearchBar :query="searchQuery" @update-query="updateQuery" />
+<WeatherCard
+  v-for="city in filteredWeatherList"
+  :key="city.id"
+  :city="city"
+  :is-selected="city.id === selectedCityId"
+  :is-favorite="favoriteIds.includes(city.id)"
+  @select-card="selectCity"
+  @click-detail="showDetail"
+  @toggle-favorite="toggleFavorite"
+/>
+```
+
+**2. BaseDashboardCard.vue**
+
+검색박스와 리스트박스가 같이 쓰던 배경 테두리 여백 스타일을 하나로 모으고 내용은 `<slot>`으로 비워 두어 부모가 검색창과 날씨 카드 목록을 각각 주입하도록 했습니다.
+
+```html
+<section class="base-dashboard-card">
+  <slot></slot>
+</section>
+```
+
+**3. SearchBar.vue**
+
+`defineProps`로 `query`를 받아 `:value`에 바인딩하고 입력할 때마다 `handleInput` 함수에서 `defineEmits`로 등록한 `update-query` 이벤트에 입력값을 실어 부모로 올립니다. 검색어 자체는 부모만 바꾸므로 한글 입력도 부모의 `searchQuery`로 실시간 동기화됩니다.
+
+```js
+defineProps({ query: { type: String, default: '' } })
+const emit = defineEmits(['update-query'])
+
+const handleInput = (e) => {
+  emit('update-query', e.target.value)
+}
+```
+
+```html
+<input type="text" :value="query" @input="handleInput" />
+```
+
+**4. WeatherCard.vue**
+
+도시 객체 `city`(required)와 선택 여부 `isSelected` 즐겨찾기 여부 `isFavorite`를 props로 받아 표시만 담당합니다. 카드 클릭은 `select-card`로 도시 객체를 상세보기는 `click-detail`로 도시명과 상태를 ★ 버튼은 `toggle-favorite`로 id를 `@click.stop`과 함께 부모에게 보냅니다.
+
+```js
+defineProps({
+  city: { type: Object, required: true },
+  isSelected: { type: Boolean, default: false },
+  isFavorite: { type: Boolean, default: false },
+})
+const emit = defineEmits(['select-card', 'click-detail', 'toggle-favorite'])
+```
+
+```html
+<div class="weather-card" :class="{ selected: isSelected }" @click="emit('select-card', city)">
+  <button class="btn-favorite" @click.stop="emit('toggle-favorite', city.id)">★</button>
+  <button class="btn-detail" @click.stop="emit('click-detail', city.name, city.status)">
+    상세보기
+  </button>
+</div>
+```
+
+**5. style scoped 분리**
+
+`exercise.css`에 있던 스타일을 소유 컴포넌트별로 나눠 `<style scoped>`에 넣었습니다. 카드 관련(`.weather-card` `.label` `.btn-detail` 등)은 WeatherCard 검색창 관련(`.search-bar input` `.hint`)은 SearchBar 공통 박스는 BaseDashboardCard 래퍼와 상태바 즐겨찾기 체크박스 빈 결과 안내는 WeatherParent가 가집니다.
+
+**6. Slot 안 자식과 부모의 직접 통신**
+
+SearchBar와 WeatherCard는 BaseDashboardCard의 slot 안에 놓이지만 WeatherParent 템플릿에서 작성되므로 부모 스코프에서 평가됩니다. 그래서 BaseDashboardCard를 거치지 않고 `:query` `@update-query` `v-model="showOnlyFavorites"`처럼 부모 데이터와 직접 바인딩했습니다.
+
+```html
+<BaseDashboardCard>
+  <SearchBar :query="searchQuery" @update-query="updateQuery" />
+  <label
+    ><input type="checkbox" v-model="showOnlyFavorites" /> ⭐ 즐겨찾기만 보기 ({{ favoriteCount
+    }}개)</label
+  >
+</BaseDashboardCard>
+```
+
+**7. 추가 Component (WeatherDetailList.vue)**
+
+과제 1에서 제가 추가한 Mockup 부분인 체감온도 습도 풍속 목록을 WeatherCard에서 `WeatherDetailList.vue`로 한 번 더 분리했습니다. 도시 객체 `city`만 props로 받아 표시하는 컴포넌트이고 이벤트는 없습니다. 목록 스타일(`.detail-list`)도 함께 옮겨 `<style scoped>`로 가집니다.
+
+```js
+defineProps({ city: { type: Object, required: true } })
+```
+
+```html
+<ul class="detail-list">
+  <li>🌡️ 체감온도: {{ city.feelsLike }}°C</li>
+  <li>💧 습도: {{ city.humidity }}%</li>
+  <li>💨 풍속: {{ city.windSpeed }}m/s</li>
+</ul>
+```
+
+WeatherCard에서는 받은 `city`를 그대로 내려줍니다.
+
+```html
+<WeatherDetailList :city="city" />
+```
